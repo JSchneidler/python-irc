@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "irc"
+version = "0.1.0"
+description = "A simple IRC library, client, and server"
+authors = ["Jordan Schneidler <jordan.schneidler@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.5"
+black = "^21.9b0"
+flake8 = "^4.0.1"
+rstcheck = "^3.3.1"
+docutils = "0.17"
+Sphinx = "^4.2.0"
+snooty-lextudio = "^1.11.4-alpha.0"
+pytest-cov = "^3.0.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+packages = [
+    { include = "client" },
+    { include = "server" },
+]
+
+[tool.pytest.ini_options]
+# addopts = "--cov=client --cov=server"
+testpaths = [
+    "tests"
+]

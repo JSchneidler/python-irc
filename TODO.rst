@@ -1,0 +1,9 @@
+* Find out why __init__.py files are needed in tests/ (wasn't previously)
+* Server logging
+* Colorama
+* Script for rstcheck, docutils
+* Console GUI (client and server)
+* Desktop GUI
+* Web GUI (client and server)
+* Docker image
+* CI/CD and/or cloud
