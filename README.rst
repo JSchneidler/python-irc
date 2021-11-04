@@ -10,3 +10,4 @@ Prerequisites
 Setup
 -----
 1. ``poetry install``
+2. ``pytest``
