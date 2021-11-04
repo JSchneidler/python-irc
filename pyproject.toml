@@ -22,12 +22,13 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 packages = [
-    { include = "client" },
-    { include = "server" },
+    { include = "irc", from = "src" },
+    { include = "client", from = "src" },
+    { include = "server", from = "src" }
 ]
 
 [tool.pytest.ini_options]
-# addopts = "--cov=client --cov=server"
+addopts = "--cov=src --log-level=DEBUG"
 testpaths = [
     "tests"
 ]
