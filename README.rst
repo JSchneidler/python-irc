@@ -4,7 +4,7 @@ IRC Client and Server
 
 Prerequisites
 -------------
-* Python 3
+* Python >=3.9
 * Poetry
 
 Setup
