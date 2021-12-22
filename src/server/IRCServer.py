@@ -51,11 +51,9 @@ class Server(ThreadingTCPServer):
             self.serve_forever()
 
     def stop(self) -> None:
-        if self.started:
-            self.shutdown()
-            self.server_close()
-            self.started = False
-            logging.info("Server stopped")
+        super().server_close()
+        self.started = False
+        logging.info("Server stopped")
 
     def getHost(self) -> str:
         return self.host
@@ -66,52 +64,61 @@ class Server(ThreadingTCPServer):
         handler.user = user
 
     def removeUser(self, handler: ClientHandler) -> None:
-        if handler.user.username and handler.user.username in self.clients:
+        if handler.user.username:
             del self.clients[handler.user.username]
         elif getAnonymousIdentifier(handler) in self.newClients:
             del self.newClients[getAnonymousIdentifier(handler)]
         else:
             raise ClientNotFoundException(handler)
 
+    def sendMessage(self, client: Client, message: str) -> None:
+        client.handler.send(message)
+
     def handleMessage(self, handler: ClientHandler, rawMessage: str) -> None:
         client = self._getClient(handler)
         message = Message(rawMessage, client.user)
-        if message.command == "PASS":
+        if message.command == "CAP":
+            self._handleCap(client, message)
+        elif message.command == "PASS":
             self._handlePass(client, message)
         elif message.command == "NICK":
             self._handleNick(client, message)
         elif message.command == "USER":
             self._handleUser(client, message)
         elif message.command == "JOIN":
-            self._handleJoin(client, message)
-        elif message.command == "PART":
-            self._handlePart(client, message)
-        elif message.command == "PRIVMSG":
-            self._handlePrivmessage(client, message)
+            logging.info("Unhandled command: {}".format(message.rawMessage))
         elif message.command == "QUIT":
-            self._handleQuit(client, message)
+            self._handleQuit(client)
+        elif message.command == "PART":
+            logging.info("Unhandled command: {}".format(message.rawMessage))
+        elif message.command == "PRIVMSG":
+            logging.info("Unhandled command: {}".format(message.rawMessage))
         elif message.command == "MODE":
-            self._handleMode(client, message)
+            logging.info("Unhandled command: {}".format(message.rawMessage))
         elif message.command == "TOPIC":
-            self._handleTopic(client, message)
+            logging.info("Unhandled command: {}".format(message.rawMessage))
         elif message.command == "PING":
-            self._handlePing(client, message)
+            logging.info("Unhandled command: {}".format(message.rawMessage))
         elif message.command == "PONG":
-            self._handlePong(client, message)
+            logging.info("Unhandled command: {}".format(message.rawMessage))
         elif message.command == "ERROR":
-            self._handleError(client, message)
+            logging.info("Unhandled command: {}".format(message.rawMessage))
         elif message.command == "MOTD":
             self._sendMotd(client)
         elif message.command == "LUSERS":
             self._sendLUsers(client)
         else:
-            logging.info("Unhandled command: {}".format(message.command))
+            logging.info("Unhandled command: {}".format(message.rawMessage))
 
     def _getClient(self, handler: ClientHandler) -> Client:
         if handler.user.username:
             return self.clients.get(handler.user.username)
         else:
             return self.newClients.get(getAnonymousIdentifier(handler))
+
+    # https://ircv3.net/specs/extensions/capability-negotiation
+    def _handleCap(self, client: Client, message: Message) -> None:
+        client.handler.send("CAP * LS :")
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.1.1
     def _handlePass(self, client: Client, message: Message) -> None:
@@ -148,8 +155,19 @@ class Server(ThreadingTCPServer):
                 client.user.realname = " ".join(message.params[3:])
 
                 self._sendWelcome(client)
+
+                self.clients[client.user.username] = client
+                del self.newClients[getAnonymousIdentifier(client.handler)]
+                logging.info(
+                    "Registered user {} from {}".format(
+                        client.user.username, client.handler.getClientAddress()
+                    )
+                )
         except ParamValidationException:
             pass
+
+    def _handleQuit(self, client: Client) -> None:
+        pass
 
     # https://datatracker.ietf.org/doc/html/rfc2813#section-5.2.1
     def _sendWelcome(self, client: Client) -> None:
@@ -171,8 +189,9 @@ class Server(ThreadingTCPServer):
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.4.1
     def _sendMotd(self, client: Client) -> None:
         client.handler.send(self._makeNumericReply(replies.motdStart(self.host)))
-        for line in self.motd:
-            client.handler.send(self._makeNumericReply(replies.motd(line)))
+        if self.motd:
+            for line in self.motd:
+                client.handler.send(self._makeNumericReply(replies.motd(line)))
         client.handler.send(self._makeNumericReply(replies.endOfMotd()))
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.4.2

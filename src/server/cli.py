@@ -35,6 +35,8 @@ def main():
     try:
         server.start()
     except KeyboardInterrupt:
+        pass
+    finally:
         server.stop()
 
 

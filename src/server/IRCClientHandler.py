@@ -22,7 +22,7 @@ class ClientHandler(StreamRequestHandler):
     def setup(self) -> None:
         super().setup()
 
-        logging.info("New connection from {}".format(self.client_address))
+        logging.debug("New connection from {}".format(self.getClientAddress()))
 
         self.server.addUser(self)
 
@@ -31,7 +31,7 @@ class ClientHandler(StreamRequestHandler):
             line = self.rfile.readline().strip().decode("utf-8")
 
             if len(line) > 0:
-                logging.debug("{} wrote: {}".format(self.client_address, line))
+                logging.debug("{} wrote: {}".format(self.getClientAddress(), line))
                 self.server.handleMessage(self, line)
             else:
                 break
@@ -40,10 +40,13 @@ class ClientHandler(StreamRequestHandler):
         self.wfile.write(message.encode("utf-8"))
 
     def finish(self) -> None:
-        logging.info("Connection from {} closed".format(self.client_address))
+        logging.debug("Connection from {} closed".format(self.getClientAddress()))
         self.server.removeUser(self)
 
         super().finish()
+
+    def getClientAddress(self) -> str:
+        return "{}:{}".format(self.getHost(), self.getPort())
 
     def getHost(self) -> str:
         return self.client_address[0]
