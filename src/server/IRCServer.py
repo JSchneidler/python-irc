@@ -7,7 +7,7 @@ from irc.IRCUser import User
 from irc.IRCMessage import Message
 
 from .IRCClientHandler import ClientHandler
-from . import replies
+from . import Reply
 
 
 class ClientNotFoundException(Exception):
@@ -71,14 +71,11 @@ class Server(ThreadingTCPServer):
         else:
             raise ClientNotFoundException(handler)
 
-    def sendMessage(self, client: Client, message: str) -> None:
-        client.handler.send(message)
-
     def handleMessage(self, handler: ClientHandler, rawMessage: str) -> None:
         client = self._getClient(handler)
         message = Message(rawMessage, client.user)
         if message.command == "CAP":
-            self._handleCap(client, message)
+            self._handleCap(client)
         elif message.command == "PASS":
             self._handlePass(client, message)
         elif message.command == "NICK":
@@ -88,7 +85,7 @@ class Server(ThreadingTCPServer):
         elif message.command == "JOIN":
             logging.info("Unhandled command: {}".format(message.rawMessage))
         elif message.command == "QUIT":
-            self._handleQuit(client)
+            pass
         elif message.command == "PART":
             logging.info("Unhandled command: {}".format(message.rawMessage))
         elif message.command == "PRIVMSG":
@@ -117,7 +114,7 @@ class Server(ThreadingTCPServer):
             return self.newClients.get(getAnonymousIdentifier(handler))
 
     # https://ircv3.net/specs/extensions/capability-negotiation
-    def _handleCap(self, client: Client, message: Message) -> None:
+    def _handleCap(self, client: Client) -> None:
         client.handler.send("CAP * LS :")
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.1.1
@@ -125,7 +122,7 @@ class Server(ThreadingTCPServer):
         try:
             self._requireParams(client, message)
             if self._userAlreadyRegistered(client.user):
-                client.handler.send(self._makeNumericReply(replies.alreadyRegistered()))
+                client.handler.send(self._makeReply(client, Reply.alreadyRegistered()))
             else:
                 client.user.password = message.params[0]
         except ParamValidationException:
@@ -134,12 +131,12 @@ class Server(ThreadingTCPServer):
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.1.2
     def _handleNick(self, client: Client, message: Message) -> None:
         if len(message.params) == 0:
-            client.handler.send(self._makeNumericReply(replies.noNickGiven()))
+            client.handler.send(self._makeReply(client, Reply.noNickGiven()))
         else:
             nick = message.params[0]
             try:
                 next(c for c in self.clients.values() if c.user.nick == nick)
-                client.handler.send(self._makeNumericReply(replies.nickInUse(nick)))
+                client.handler.send(self._makeReply(client, Reply.nickInUse(nick)))
             except StopIteration:
                 client.user.nick = nick
 
@@ -148,7 +145,7 @@ class Server(ThreadingTCPServer):
         try:
             self._requireParams(client, message, 4)
             if client.user.username:
-                client.handler.send(self._makeNumericReply(replies.alreadyRegistered()))
+                client.handler.send(self._makeReply(client, Reply.alreadyRegistered()))
             else:
                 client.user.username = message.params[0]
                 client.user.mode = message.params[1]
@@ -166,57 +163,56 @@ class Server(ThreadingTCPServer):
         except ParamValidationException:
             pass
 
-    def _handleQuit(self, client: Client) -> None:
-        pass
-
     # https://datatracker.ietf.org/doc/html/rfc2813#section-5.2.1
     def _sendWelcome(self, client: Client) -> None:
-        messages = [
-            "001 :Welcome to the Internet Relay Network\r\n{}!{}@{}".format(
+        replies = [
+            Reply.welcome(
                 client.user.nick, client.user.username, client.handler.getHost()
             ),
-            "002 :Your host is {}, running version {}".format(self.host, "0.0.1"),
-            "003 :This server was created {}".format(self.createdDate),
-            "004 :{} {} {} {}".format(
+            Reply.yourHost(self.host, "0.0.1"),
+            Reply.created(self.createdDate),
+            Reply.myInfo(
                 client.handler.getHost(), "0.0.1", "aiwroOs", "OovaimnqpsrtklbeI"
             ),
         ]
-        for message in messages:
-            client.handler.send(self._makeNumericReply(message))
+        for reply in replies:
+            client.handler.send(self._makeReply(client, reply))
         self._sendLUsers(client)
         self._sendMotd(client)
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.4.1
     def _sendMotd(self, client: Client) -> None:
-        client.handler.send(self._makeNumericReply(replies.motdStart(self.host)))
+        client.handler.send(self._makeReply(client, Reply.motdStart(self.host)))
         if self.motd:
             for line in self.motd:
-                client.handler.send(self._makeNumericReply(replies.motd(line)))
-        client.handler.send(self._makeNumericReply(replies.endOfMotd()))
+                client.handler.send(self._makeReply(client, Reply.motd(line)))
+        client.handler.send(self._makeReply(client, Reply.endOfMotd()))
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.4.2
     def _sendLUsers(self, client: Client) -> None:
-        messages = [
-            replies.lUserClient(len(self.clients), 0),
-            replies.lUserOp(len(self.clients)),  # TODO: Implement ops
-            replies.lUserUnknown(len(self.newClients)),
-            replies.lUserChannels(len(self.channels)),
-            replies.lUserMe(len(self.clients)),
+        replies = [
+            Reply.lUserClient(len(self.clients), 0),
+            Reply.lUserOp(len(self.clients)),  # TODO: Implement ops
+            Reply.lUserUnknown(len(self.newClients)),
+            Reply.lUserChannels(len(self.channels)),
+            Reply.lUserMe(len(self.clients)),
         ]
-        for message in messages:
-            client.handler.send(self._makeNumericReply(message))
+        for reply in replies:
+            client.handler.send(self._makeReply(client, reply))
 
     def _requireParams(
         self, client: Client, message: Message, paramCount: int = 1
     ) -> None:
         if (not message.params) or (len(message.params) < paramCount):
             client.handler.send(
-                self._makeNumericReply(replies.needMoreParams(message.command))
+                self._makeReply(client, Reply.needMoreParams(message.command))
             )
             raise ParamValidationException(message.command)
 
-    def _makeNumericReply(self, message: str) -> str:
-        return f"{self._getPrefix()} {message}"
+    def _makeReply(self, client: Client, reply: Reply.Reply) -> str:
+        return (
+            f"{self._getPrefix()} {client.user.username} {reply.code} {reply.text}\r\n"
+        )
 
     def _userAlreadyRegistered(self, user: User) -> bool:
         return user.password is not None

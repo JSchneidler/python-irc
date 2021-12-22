@@ -25,13 +25,12 @@ parser.add_argument(
 
 args: CliArguments = parser.parse_args()
 
-
 LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
 
 
 def main():
     logging.basicConfig(level=args.log_level, format=LOG_FORMAT, force=True)
-    server = Server(args.host, args.port)
+    server = Server(args.host, args.port, ["Welcome to the IRC server!"])
     try:
         server.start()
     except KeyboardInterrupt:

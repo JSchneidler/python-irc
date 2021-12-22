@@ -8,7 +8,7 @@ SERVER_HOST = "localhost"
 SERVER_PORT = 0
 
 
-def test_IRCClient_connect():
+def test_Client_connect():
     server = ThreadingTCPServer((SERVER_HOST, SERVER_PORT), BaseRequestHandler)
     serverThread = threading.Thread(target=server.serve_forever)
     serverThread.start()

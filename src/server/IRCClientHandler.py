@@ -38,6 +38,7 @@ class ClientHandler(StreamRequestHandler):
 
     def send(self, message: str) -> None:
         self.wfile.write(message.encode("utf-8"))
+        logging.debug("Server wrote to {}: {}".format(self.getClientAddress(), message))
 
     def finish(self) -> None:
         logging.debug("Connection from {} closed".format(self.getClientAddress()))

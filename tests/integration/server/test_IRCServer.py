@@ -27,21 +27,34 @@ def createClient(server: Server):
     return client
 
 
-def test_IRCServer_connect(server):
+def test_Server_connect(server):
     createClient(server)
 
 
-def test_IRCServer_connectMultipleClients(server):
+def test_Server_connectMultipleClients(server):
     createClient(server)
     createClient(server)
 
 
-def test_IRCServer_pass(server):
+def test_Server_cap(server):
+    client = createClient(server)
+    expectedResponse = "CAP * LS :\r\n"
+
+    client.sendall(b"CAP LS\r\n")
+    response = client.recv(1024).decode("utf-8")
+    assert response == expectedResponse
+
+    client.sendall(b"CAP LS 302\r\n")
+    response = client.recv(1024).decode("utf-8")
+    assert response == expectedResponse
+
+
+def test_Server_pass(server):
     client = createClient(server)
     client.sendall(b"PASS password\r\n")
 
 
-def test_IRCServer_pass_notEnoughParameters(server):
+def test_Server_pass_notEnoughParameters(server):
     client = createClient(server)
     client.sendall(b"PASS\r\n")
     response = client.recv(1024).decode("utf-8")
@@ -49,12 +62,12 @@ def test_IRCServer_pass_notEnoughParameters(server):
     assert response == ":127.0.0.1 461 PASS :Not enough parameters"
 
 
-def test_IRCServer_nick(server):
+def test_Server_nick(server):
     client = createClient(server)
     client.sendall(b"NICK nickname\r\n")
 
 
-def test_IRCServer_nick_noNicknameGiven(server):
+def test_Server_nick_noNicknameGiven(server):
     client = createClient(server)
     client.sendall(b"NICK\r\n")
     response = client.recv(1024).decode("utf-8")
@@ -62,7 +75,7 @@ def test_IRCServer_nick_noNicknameGiven(server):
     assert response == ":127.0.0.1 431 :No nickname given"
 
 
-def test_IRCServer_user(server):
+def test_Server_user(server):
     client = createClient(server)
     client.sendall(b"NICK guest\r\n")
     client.sendall(b"USER guest 0 :Full Name\r\n")
@@ -83,7 +96,7 @@ def test_IRCServer_user(server):
     assert responses == expectedResponses
 
 
-def test_IRCServer_user_notEnoughParameters(server):
+def test_Server_user_notEnoughParameters(server):
     client = createClient(server)
     client.sendall(b"USER\r\n")
     response = client.recv(1024).decode("utf-8")
