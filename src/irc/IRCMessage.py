@@ -1,25 +1,22 @@
-from .IRCUser import IRCUser
+from .IRCUser import User
 
 
 # https://datatracker.ietf.org/doc/html/rfc1459#section-2.3
-class IRCMessage:
-    """An IRC message"""
+class Message:
+    rawMessage: str = None
+    prefix: str = None
+    command: str = None
+    params: list[str] = None
 
-    rawMessage: str
-    prefix: str
-    command: str
-    params: list[str]
+    user: User
 
-    user: IRCUser
-
-    def __init__(self, rawMessage, user):
+    def __init__(self, rawMessage, user: User):
         self.rawMessage = rawMessage
         self.user = user
 
-        self.parseRawMessage()
+        self._parseRawMessage()
 
-    def parseRawMessage(self):
-        """Parse the raw message into the IRCMessage object"""
+    def _parseRawMessage(self):
         messageParts = self.rawMessage.split(" ")
 
         # The first part of the message is the prefix

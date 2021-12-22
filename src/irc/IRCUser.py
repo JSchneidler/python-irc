@@ -1,15 +1,10 @@
-from typing import Dict
-
 MAX_NICK_LENGTH = 9
 
 
-class IRCUser:
-    """Represents an IRC user"""
-
-    nick: str
-    isOperator: bool
-
-    pass
-
-
-Users = Dict[str, IRCUser]
+class User:
+    password: str = None
+    mode: int = None
+    nick: str = None
+    username: str = None
+    realname: str = None
+    isOperator: bool = None

@@ -1,11 +1,11 @@
 import threading
 from socketserver import BaseRequestHandler, ThreadingTCPServer
 
-from client.IRCClient import IRCClient
+from client.IRCClient import Client
 
 
 SERVER_HOST = "localhost"
-SERVER_PORT = 6666
+SERVER_PORT = 0
 
 
 def test_IRCClient_connect():
@@ -13,7 +13,7 @@ def test_IRCClient_connect():
     serverThread = threading.Thread(target=server.serve_forever)
     serverThread.start()
 
-    client = IRCClient(SERVER_HOST, SERVER_PORT)
+    client = Client(server.server_address[0], server.server_address[1])
     client.connect()
     client.disconnect()
 

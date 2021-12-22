@@ -28,7 +28,7 @@ packages = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "--cov=src --log-level=DEBUG"
+addopts = "--cov=src -rP --log-level=DEBUG"
 testpaths = [
     "tests"
 ]
