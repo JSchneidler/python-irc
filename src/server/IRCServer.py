@@ -37,7 +37,7 @@ class Server(ThreadingTCPServer):
     clients: Clients = {}
     newClients: Clients = {}
 
-    def __init__(self, host: str, port: int, motd: list[str]) -> None:
+    def __init__(self, host: str, port: int, motd: list[str] = None) -> None:
         super().__init__((host, port), ClientHandler)
 
         self.host = self.server_address[0]
