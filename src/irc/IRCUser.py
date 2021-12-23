@@ -8,3 +8,6 @@ class User:
     username: str = None
     realname: str = None
     isOperator: bool = None
+
+
+Users = dict[str, User]

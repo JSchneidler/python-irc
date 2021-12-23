@@ -28,3 +28,6 @@ class Message:
             self.prefix = None
             self.command = messageParts[0]
             self.params = messageParts[1:]
+
+
+Messages = list[Message]

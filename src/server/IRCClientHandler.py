@@ -7,11 +7,6 @@ from irc.IRCUser import User
 if TYPE_CHECKING:
     from .IRCServer import Server
 
-logging.basicConfig(
-    format="%(asctime)s %(levelname)s: %(message)s",
-    datefmt="%m/%d/%Y %I:%M:%S %p",
-)
-
 
 class ClientHandler(StreamRequestHandler):
     user: User = None
@@ -22,7 +17,7 @@ class ClientHandler(StreamRequestHandler):
     def setup(self) -> None:
         super().setup()
 
-        logging.debug("New connection from {}".format(self.getClientAddress()))
+        logging.debug(f"New connection from {self.getClientAddress()}")
 
         self.server.addUser(self)
 
@@ -31,7 +26,7 @@ class ClientHandler(StreamRequestHandler):
             line = self.rfile.readline().strip().decode("utf-8")
 
             if len(line) > 0:
-                logging.debug("{} wrote: {}".format(self.getClientAddress(), line))
+                logging.debug(f"{self.getClientAddress()} wrote: {line}")
                 self.server.handleMessage(self, line)
             else:
                 break
@@ -39,16 +34,16 @@ class ClientHandler(StreamRequestHandler):
     def send(self, message: str) -> None:
         message = message + "\r\n"
         self.wfile.write(message.encode("utf-8"))
-        logging.debug("Server wrote to {}: {}".format(self.getClientAddress(), message))
+        logging.debug(f"Server wrote to {self.getClientAddress()}: {repr(message)}")
 
     def finish(self) -> None:
-        logging.debug("Connection from {} closed".format(self.getClientAddress()))
+        logging.debug(f"Connection from {self.getClientAddress()} closed")
         self.server.removeUser(self)
 
         super().finish()
 
     def getClientAddress(self) -> str:
-        return "{}:{}".format(self.getHost(), self.getPort())
+        return f"{self.getHost()}:{self.getPort()}"
 
     def getHost(self) -> str:
         return self.client_address[0]
