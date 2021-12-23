@@ -59,7 +59,7 @@ def test_Server_pass_notEnoughParameters(server):
     client.sendall(b"PASS\r\n")
     response = client.recv(1024).decode("utf-8")
 
-    assert response == ":127.0.0.1 461 PASS :Not enough parameters"
+    assert response == ":127.0.0.1 None 461 PASS :Not enough parameters\r\n"
 
 
 def test_Server_nick(server):
@@ -72,7 +72,7 @@ def test_Server_nick_noNicknameGiven(server):
     client.sendall(b"NICK\r\n")
     response = client.recv(1024).decode("utf-8")
 
-    assert response == ":127.0.0.1 431 :No nickname given"
+    assert response == ":127.0.0.1 None 431 :No nickname given\r\n"
 
 
 def test_Server_user(server):
@@ -85,13 +85,13 @@ def test_Server_user(server):
         responses.append(client.recv(1024).decode("utf-8"))
 
     expectedResponses = [
-        ":127.0.0.1 001 :Welcome to the Internet Relay Network\r\nguest!guest@127.0.0.1",
-        ":127.0.0.1 002 :Your host is 127.0.0.1, running version 0.0.1",
-        ":127.0.0.1 003 :This server was created None",
-        ":127.0.0.1 004 :127.0.0.1 0.0.1 aiwroOs OovaimnqpsrtklbeI",
-        ":127.0.0.1 251 :There are 0 users and 0 services on 1 server",
-        ":127.0.0.1 252 0 :operator(s) online",
-        ":127.0.0.1 253 1 :unknown connection(s)",
+        ":127.0.0.1 guest 001 :Welcome to the Internet Relay Network\r\nguest!guest@127.0.0.1\r\n",
+        ":127.0.0.1 guest 002 :Your host is 127.0.0.1, running version 0.0.1\r\n",
+        ":127.0.0.1 guest 003 :This server was created None\r\n",
+        ":127.0.0.1 guest 004 :127.0.0.1 0.0.1 aiwroOs OovaimnqpsrtklbeI\r\n",
+        ":127.0.0.1 guest 251 :There are 0 users and 0 services on 1 server\r\n",
+        ":127.0.0.1 guest 252 0 :operator(s) online\r\n",
+        ":127.0.0.1 guest 253 1 :unknown connection(s)\r\n",
     ]
     assert responses == expectedResponses
 
@@ -101,4 +101,4 @@ def test_Server_user_notEnoughParameters(server):
     client.sendall(b"USER\r\n")
     response = client.recv(1024).decode("utf-8")
 
-    assert response == ":127.0.0.1 461 USER :Not enough parameters"
+    assert response == ":127.0.0.1 None 461 USER :Not enough parameters\r\n"

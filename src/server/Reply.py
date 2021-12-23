@@ -65,9 +65,7 @@ def endOfMotd() -> str:
 
 
 def lUserClient(users: int, services: int) -> str:
-    return Reply(
-        251, f"251 :There are {users} users and {services} services on 1 server"
-    )
+    return Reply(251, f":There are {users} users and {services} services on 1 server")
 
 
 def lUserOp(ops: int) -> str:

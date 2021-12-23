@@ -37,6 +37,7 @@ class ClientHandler(StreamRequestHandler):
                 break
 
     def send(self, message: str) -> None:
+        message = message + "\r\n"
         self.wfile.write(message.encode("utf-8"))
         logging.debug("Server wrote to {}: {}".format(self.getClientAddress(), message))
 

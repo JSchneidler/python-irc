@@ -211,9 +211,7 @@ class Server(ThreadingTCPServer):
             raise ParamValidationException(message.command)
 
     def _makeReply(self, client: Client, reply: Reply.Reply) -> str:
-        return (
-            f"{self._getPrefix()} {client.user.username} {reply.code} {reply.text}\r\n"
-        )
+        return f"{self._getPrefix()} {client.user.username} {reply.code} {reply.text}"
 
     def _userAlreadyRegistered(self, user: User) -> bool:
         return user.password is not None
