@@ -40,6 +40,7 @@ class Server(ThreadingTCPServer):
     def __init__(self, host: str, port: int, motd: list[str] = None) -> None:
         super().__init__((host, port), ClientHandler)
 
+        self.daemon_threads = True
         self.host = self.server_address[0]
         self.port = self.server_address[1]
         self.motd = motd
@@ -51,7 +52,7 @@ class Server(ThreadingTCPServer):
             self.serve_forever()
 
     def stop(self) -> None:
-        super().server_close()
+        super().shutdown()
         self.started = False
         logging.info("Server stopped")
 
