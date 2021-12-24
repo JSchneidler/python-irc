@@ -28,6 +28,9 @@ packages = [
     { include = "server", from = "src" }
 ]
 
+[tool.mypy]
+files = ["src"]
+
 [tool.pytest.ini_options]
 addopts = "--cov=src -rP --log-level=DEBUG"
 testpaths = [
