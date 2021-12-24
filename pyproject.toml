@@ -16,6 +16,7 @@ docutils = "0.17"
 Sphinx = "^4.2.0"
 snooty-lextudio = "^1.11.4-alpha.0"
 pytest-cov = "^3.0.0"
+mypy = "^0.930"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
