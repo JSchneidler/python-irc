@@ -28,6 +28,9 @@ packages = [
     { include = "server", from = "src" }
 ]
 
+[tool.black]
+line-length = 79
+
 [tool.mypy]
 files = ["src"]
 
