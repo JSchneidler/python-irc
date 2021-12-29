@@ -10,7 +10,7 @@ SERVER_PORT = 0
 
 @fixture
 def server():
-    server = Server(SERVER_HOST, SERVER_PORT, ["test"])
+    server = Server(SERVER_HOST, SERVER_PORT, ["test"], "N/A")
     serverThread = threading.Thread(target=server.start)
     serverThread.start()
 
@@ -103,7 +103,7 @@ def test_Server_user(server):
     expectedResponses = [
         ":127.0.0.1 guest 001 :Welcome to the Internet Relay Network\r\nguest!guest@127.0.0.1\r\n",
         ":127.0.0.1 guest 002 :Your host is 127.0.0.1, running version 0.0.1\r\n",
-        ":127.0.0.1 guest 003 :This server was created None\r\n",
+        ":127.0.0.1 guest 003 :This server was created N/A\r\n",
         ":127.0.0.1 guest 004 :127.0.0.1 0.0.1 aiwroOs OovaimnqpsrtklbeI\r\n",
         ":127.0.0.1 guest 251 :There are 0 users and 0 services on 1 server\r\n",
         ":127.0.0.1 guest 252 0 :operator(s) online\r\n",
