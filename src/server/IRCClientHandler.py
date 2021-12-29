@@ -1,5 +1,5 @@
 from socketserver import StreamRequestHandler
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 import logging
 
 from irc.IRCUser import User
@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 
 class ClientHandler(StreamRequestHandler):
-    user: User = None
+    user: Optional[User] = None
 
     # Inherited from StreamRequestHandler
     server: "Server"
@@ -34,7 +34,9 @@ class ClientHandler(StreamRequestHandler):
     def send(self, message: str) -> None:
         message = message + "\r\n"
         self.wfile.write(message.encode("utf-8"))
-        logging.debug(f"Server wrote to {self.getClientAddress()}: {repr(message)}")
+        logging.debug(
+            f"Server wrote to {self.getClientAddress()}: {repr(message)}"
+        )
 
     def finish(self) -> None:
         logging.debug(f"Connection from {self.getClientAddress()} closed")

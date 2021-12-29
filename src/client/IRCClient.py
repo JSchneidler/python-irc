@@ -19,7 +19,9 @@ class Client:
     def connect(self) -> None:
         """Connects to the server"""
         self.client.connect((self.host, self.port))
-        logging.info("Connected to server at " + self.host + ":" + str(self.port))
+        logging.info(
+            "Connected to server at " + self.host + ":" + str(self.port)
+        )
 
     def disconnect(self) -> None:
         """Disconnects from the server"""

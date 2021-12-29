@@ -1,13 +1,15 @@
+from typing import Optional
+
 MAX_NICK_LENGTH = 9
 
 
 class User:
-    password: str = None
-    mode: int = None
-    nick: str = None
-    username: str = None
-    realname: str = None
-    isOperator: bool = None
+    password: Optional[str] = None
+    mode: Optional[int] = None
+    nick: Optional[str] = None
+    username: Optional[str] = None
+    realname: Optional[str] = None
+    isOperator: bool = False
 
 
 Users = dict[str, User]

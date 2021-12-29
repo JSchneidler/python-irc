@@ -1,14 +1,16 @@
+from typing import Optional
+
 from .IRCUser import User
 
 
 # https://datatracker.ietf.org/doc/html/rfc1459#section-2.3
 class Message:
-    rawMessage: str = None
-    prefix: str = None
-    command: str = None
-    params: list[str] = None
+    rawMessage: str
+    prefix: Optional[str] = None
+    command: str
+    params: list[str] = []
 
-    user: User
+    user: Optional[User] = None
 
     def __init__(self, rawMessage, user: User):
         self.rawMessage = rawMessage

@@ -1,5 +1,6 @@
 from socketserver import ThreadingTCPServer
 from typing import NamedTuple
+from datetime import datetime
 import logging
 
 from irc.IRCChannel import Channels, Channel
@@ -10,11 +11,11 @@ from .IRCClientHandler import ClientHandler
 from . import Reply
 
 
-class ClientNotFoundException(Exception):
+class ClientNotFound(Exception):
     pass
 
 
-class ParamValidationException(Exception):
+class FailedParamValidation(Exception):
     pass
 
 
@@ -27,23 +28,30 @@ Clients = dict[str, Client]
 
 
 class Server(ThreadingTCPServer):
-    host: str = None
-    port: int = None
+    host: str
+    port: int
     started: bool = False
 
-    motd: list[str] = None
-    createdDate: str = None
+    motd: list[str]
+    createdDate: str
     channels: Channels = {}
     clients: Clients = {}
     newClients: Clients = {}
 
-    def __init__(self, host: str, port: int, motd: list[str] = None) -> None:
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        motd: list[str] = [],
+        createdDate: str = None,
+    ) -> None:
         super().__init__((host, port), ClientHandler)
 
         self.daemon_threads = True
         self.host = self.server_address[0]
         self.port = self.server_address[1]
         self.motd = motd
+        self.createdDate = createdDate or datetime.now().isoformat()
 
     def start(self) -> None:
         if not self.started:
@@ -58,11 +66,13 @@ class Server(ThreadingTCPServer):
 
     def addUser(self, handler: ClientHandler) -> None:
         user = User()
-        self.newClients[getAnonymousIdentifier(handler)] = Client(handler, user)
+        self.newClients[getAnonymousIdentifier(handler)] = Client(
+            handler, user
+        )
         handler.user = user
 
     def removeUser(self, handler: ClientHandler) -> None:
-        if handler.user.username:
+        if handler.user and handler.user.username:
             logging.info(f"Removing user {handler.user.username}")
             for channelName in self.channels:
                 channel = self.channels[channelName]
@@ -71,7 +81,7 @@ class Server(ThreadingTCPServer):
         elif getAnonymousIdentifier(handler) in self.newClients:
             del self.newClients[getAnonymousIdentifier(handler)]
         else:
-            raise ClientNotFoundException(handler)
+            raise ClientNotFound(handler)
 
     def handleMessage(self, handler: ClientHandler, rawMessage: str) -> None:
         client = self._getClient(handler)
@@ -112,10 +122,10 @@ class Server(ThreadingTCPServer):
             logging.debug(f"Unhandled command: {message.rawMessage}")
 
     def _getClient(self, handler: ClientHandler) -> Client:
-        if handler.user.username:
-            return self.clients.get(handler.user.username)
+        if handler.user and handler.user.username:
+            return self.clients[handler.user.username]
         else:
-            return self.newClients.get(getAnonymousIdentifier(handler))
+            return self.newClients[getAnonymousIdentifier(handler)]
 
     # https://ircv3.net/specs/extensions/capability-negotiation
     def _handleCap(self, client: Client) -> None:
@@ -126,10 +136,12 @@ class Server(ThreadingTCPServer):
         try:
             self._requireParams(client, message)
             if self._userAlreadyRegistered(client.user):
-                client.handler.send(self._makeReply(client, Reply.alreadyRegistered()))
+                client.handler.send(
+                    self._makeReply(client, Reply.alreadyRegistered())
+                )
             else:
                 client.user.password = message.params[0]
-        except ParamValidationException:
+        except FailedParamValidation:
             pass
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.1.2
@@ -140,9 +152,13 @@ class Server(ThreadingTCPServer):
             nick = message.params[0]
             try:
                 next(c for c in self.clients.values() if c.user.nick == nick)
-                client.handler.send(self._makeReply(client, Reply.nickInUse(nick)))
+                client.handler.send(
+                    self._makeReply(client, Reply.nickInUse(nick))
+                )
             except StopIteration:
-                logging.info(f"Changing nick from {client.user.nick} to {nick}")
+                logging.info(
+                    f"Changing nick from {client.user.nick} to {nick}"
+                )
                 client.user.nick = nick
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.1.3
@@ -150,10 +166,12 @@ class Server(ThreadingTCPServer):
         try:
             self._requireParams(client, message, 4)
             if client.user.username:
-                client.handler.send(self._makeReply(client, Reply.alreadyRegistered()))
+                client.handler.send(
+                    self._makeReply(client, Reply.alreadyRegistered())
+                )
             else:
                 client.user.username = message.params[0]
-                client.user.mode = message.params[1]
+                client.user.mode = int(message.params[1])
                 client.user.realname = " ".join(message.params[3:])
 
                 self._sendWelcome(client)
@@ -161,9 +179,12 @@ class Server(ThreadingTCPServer):
                 self.clients[client.user.username] = client
                 del self.newClients[getAnonymousIdentifier(client.handler)]
                 logging.info(
-                    f"Registered user {client.user.username} from {client.handler.getClientAddress()}"
+                    (
+                        f"Registered user {client.user.username}"
+                        f" from {client.handler.getClientAddress()}"
+                    )
                 )
-        except ParamValidationException:
+        except FailedParamValidation:
             pass
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.2.1
@@ -192,19 +213,29 @@ class Server(ThreadingTCPServer):
                     if channelName in self.channels:
                         channel = self.channels[channelName]
                         if channel.key and key != channel.key:
-                            client.handler.send(Reply.badChannelKey(channelName))
+                            client.handler.send(
+                                Reply.badChannelKey(channelName)
+                            )
                             break
                     else:
                         channel = Channel(channelName, key)
                         self.channels[channelName] = channel
                     channel.addUser(client.user)
                     client.handler.send(
-                        f":{self._getClientIdentifier(client)} JOIN {channelName}"
+                        (
+                            f":{self._getClientIdentifier(client)}"
+                            f" JOIN {channelName}"
+                        )
                     )
-                    client.handler.send(Reply.topic(channelName, channel.topic))
+                    client.handler.send(
+                        Reply.topic(channelName, channel.topic)
+                    )
                     client.handler.send(
                         self._makeReply(
-                            client, Reply.names(channelName, client.user, channel.users)
+                            client,
+                            Reply.names(
+                                channelName, client.user, channel.users
+                            ),
                         )
                     )
                     client.handler.send(
@@ -212,7 +243,7 @@ class Server(ThreadingTCPServer):
                             client, Reply.endOfNames(channelName, client.user)
                         )
                     )
-        except ParamValidationException:
+        except FailedParamValidation:
             pass
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.2.2
@@ -230,11 +261,14 @@ class Server(ThreadingTCPServer):
                 if channelName in self.channels:
                     channel = self.channels[channelName]
                     channel.removeUser(client.user)
-            response = f":{self._getClientIdentifier(client)} PART {message.params[0]}"
+            response = (
+                f":{self._getClientIdentifier(client)}"
+                f" PART {message.params[0]}"
+            )
             if partMessage:
                 response += f" :{partMessage}"
             client.handler.send(response)
-        except ParamValidationException:
+        except FailedParamValidation:
             pass
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.2.4
@@ -253,17 +287,27 @@ class Server(ThreadingTCPServer):
                 if topic:
                     channel.setTopic(topic)
                     client.handler.send(
-                        f":{client.user.nick} TOPIC {channel.name} :{channel.topic}"
+                        (
+                            f":{client.user.nick}"
+                            f" TOPIC {channel.name}"
+                            f" :{channel.topic}"
+                        )
                     )
                     logging.info(
-                        f"User {client.user.nick} changed topic of channel {channel.name} to {channel.topic}"
+                        (
+                            f"User {client.user.nick}"
+                            f" changed topic of channel {channel.name}"
+                            f" to {channel.topic}"
+                        )
                     )
                 else:
-                    client.handler.send(client, Reply.topic(channelName, channel.topic))
+                    client.handler.send(
+                        Reply.topic(channelName, channel.topic)
+                    )
             else:
                 # TODO: ERR_NOTONCHANNEL?
                 pass
-        except ParamValidationException:
+        except FailedParamValidation:
             pass
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.2.5
@@ -272,6 +316,7 @@ class Server(ThreadingTCPServer):
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.2.6
     def _handleList(self, client: Client, message: Message):
+        channels: list[str] | Channels
         try:
             channels = message.params[0].split(",")
         except IndexError:
@@ -279,20 +324,29 @@ class Server(ThreadingTCPServer):
 
         for channelName in channels:
             channel = self.channels[channelName]
-            client.handler.send(f"{channelName} {len(channel.users)} :{channel.topic}")
+            client.handler.send(
+                f"{channelName} {len(channel.users)} :{channel.topic}"
+            )
 
         client.handler.send(":End of LIST")
 
     # https://datatracker.ietf.org/doc/html/rfc2813#section-5.2.1
     def _sendWelcome(self, client: Client) -> None:
+        assert client.user.nick is not None
+        assert client.user.username is not None
         replies = [
             Reply.welcome(
-                client.user.nick, client.user.username, client.handler.getHost()
+                client.user.nick,
+                client.user.username,
+                client.handler.getHost(),
             ),
             Reply.yourHost(self.host, "0.0.1"),
             Reply.created(self.createdDate),
             Reply.myInfo(
-                client.handler.getHost(), "0.0.1", "aiwroOs", "OovaimnqpsrtklbeI"
+                client.handler.getHost(),
+                "0.0.1",
+                "aiwroOs",
+                "OovaimnqpsrtklbeI",
             ),
         ]
         for reply in replies:
@@ -302,7 +356,9 @@ class Server(ThreadingTCPServer):
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.4.1
     def _sendMotd(self, client: Client) -> None:
-        client.handler.send(self._makeReply(client, Reply.motdStart(self.host)))
+        client.handler.send(
+            self._makeReply(client, Reply.motdStart(self.host))
+        )
         if self.motd:
             for line in self.motd:
                 client.handler.send(self._makeReply(client, Reply.motd(line)))
@@ -327,10 +383,15 @@ class Server(ThreadingTCPServer):
             client.handler.send(
                 self._makeReply(client, Reply.needMoreParams(message.command))
             )
-            raise ParamValidationException(message.command)
+            raise FailedParamValidation(message.command)
 
     def _makeReply(self, client: Client, reply: Reply.Reply) -> str:
-        return f"{self._getPrefix()} {client.user.username} {reply.code} {reply.text}"
+        return (
+            f"{self._getPrefix()}"
+            f" {client.user.username}"
+            f" {reply.code}"
+            f" {reply.text}"
+        )
 
     def _userAlreadyRegistered(self, user: User) -> bool:
         return user.password is not None
