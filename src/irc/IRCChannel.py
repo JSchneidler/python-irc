@@ -19,8 +19,8 @@ class UserAlreadyInChannel(Exception):
 # https://datatracker.ietf.org/doc/html/rfc1459#section-1.3
 class Channel:
     name: str
-    key: Optional[str]
-    topic: Optional[str]
+    key: Optional[str] = None
+    topic: Optional[str] = None
     users: Users = {}
     messages: Messages = []
 
