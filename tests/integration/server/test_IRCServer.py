@@ -53,7 +53,7 @@ def test_Server_nick_nicknameInUse(server: Server):
     client.sendall(b"NICK test\r\n")
     client2 = createClient(server)
     client2.sendall(b"NICK test\r\n")
-    response = readLine(client)
+    response = readLine(client2)
 
     assert response == ":127.0.0.1 433 * test :Nickname is already in use\r\n"
 
