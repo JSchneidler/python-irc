@@ -393,6 +393,7 @@ class Server(ThreadingTCPServer):
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.3.1
     def _handlePrivMsg(self, client: Client, message: Message):
         try:
+            # TODO: Use ERR_NORECIPIENT and ERR_NOTEXTTOSEND instead?
             self._requireParams(client, message, 2)
 
             target = message.params[0]
@@ -402,7 +403,12 @@ class Server(ThreadingTCPServer):
                 channel = self.channels[target]
                 msg = f"PRIVMSG {channel.name} :{text}"
                 self._sendToChannel(client, channel, msg, True)
-
+            elif target in self.clients:
+                toClient = self.clients[target]
+                msg = f"PRIVMSG {toClient.user.nick} :{text}"
+                toClient.handler.send(f":{_getClientIdentifier(client)} {msg}")
+            else:
+                self._replyNumeric(client, Reply.noSuchNick(target))
         except FailedParamValidation:
             pass
 

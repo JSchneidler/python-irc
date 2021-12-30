@@ -88,6 +88,10 @@ def lUserMe(me: int) -> Reply:
     return Reply("255", f":I have {me} clients and 0 servers")
 
 
+def noSuchNick(nick: str) -> Reply:
+    return Reply("401", f"{nick} :No such nick/channel")
+
+
 def noSuchChannel(channelName: str) -> Reply:
     return Reply("403", f"{channelName} :No such channel")
 
