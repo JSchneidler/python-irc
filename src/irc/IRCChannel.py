@@ -6,6 +6,15 @@ from .IRCUser import User, Users
 
 
 MAX_CHANNEL_NAME_LENGTH = 50
+VALID_CHANNEL_PREFIXES = ["&", "#", "+", "!"]
+
+
+class ChannelNameTooLong(Exception):
+    pass
+
+
+class InvalidChannelPrefix(Exception):
+    pass
 
 
 class NoUsername(Exception):
@@ -25,11 +34,30 @@ class Channel:
     key: Optional[str] = None
     topic: Optional[str] = None
     users: Users = {}
+    operators: Users = {}
     messages: Messages = []
 
-    def __init__(self, name: str, key: str = None):
+    def __init__(self, name: str, creator: User, key: str = None):
+        if len(name) > MAX_CHANNEL_NAME_LENGTH:
+            raise ChannelNameTooLong(f"Channel name too long: {name}")
+        if not name[0] in VALID_CHANNEL_PREFIXES:
+            raise InvalidChannelPrefix(f"Invalid channel prefix: {name}")
+
         self.name = name
         self.key = key
+        self.addOperator(creator)
+
+    def getUsers(self) -> Users:
+        return self.users
+
+    def getOperators(self) -> Users:
+        return self.operators
+
+    def getAllUsers(self) -> Users:
+        return self.users | self.operators
+
+    def isOperator(self, user: User) -> bool:
+        return user.username in self.operators
 
     def setTopic(self, topic: str) -> None:
         self.topic = topic
@@ -42,6 +70,9 @@ class Channel:
             self.users[user.username] = user
         else:
             raise NoUsername(user)
+
+    def addOperator(self, user: User) -> None:
+        self.operators[user.username] = user
 
     def removeUser(self, user: User) -> None:
         if user.username in self.users:

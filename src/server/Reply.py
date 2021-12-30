@@ -1,6 +1,5 @@
-from typing import Optional
-
-from irc.IRCUser import User, Users
+from irc.IRCUser import User
+from irc.IRCChannel import Channel
 
 
 class Reply:
@@ -89,24 +88,32 @@ def lUserMe(me: int) -> Reply:
     return Reply("255", f":I have {me} clients and 0 servers")
 
 
-def badChannelKey(channel: str) -> str:
-    return Reply("475", f"{channel} :Cannot join channel (+k)").text
+def noSuchChannel(channelName: str) -> Reply:
+    return Reply("403", f"{channelName} :No such channel")
 
 
-def topic(channel: str, topic: Optional[str]) -> str:
-    if topic:
-        return Reply("332", f"{channel} :{topic}").text
+def badChannelKey(channelName: str) -> Reply:
+    return Reply("475", f"{channelName} :Cannot join channel (+k)")
+
+
+def topic(channel: Channel) -> Reply:
+    if channel.topic:
+        return Reply("332", f"{channel.name} :{channel.topic}")
     else:
-        return Reply("331", f"{channel} :No topic is set").text
+        return Reply("331", f"{channel.name} :No topic is set")
 
 
-def names(channel: str, user: User, users: Users) -> Reply:
-    return Reply("353", f"{channel} = {user.nick} :{' '.join(users.keys())}")
+def names(channel: Channel) -> Reply:
+    operators = list(
+        map(lambda opName: f"@{opName}", channel.getOperators().keys())
+    )
+    users = list(channel.getUsers().keys())
+    return Reply("353", f"= {channel.name} :{' '.join(operators + users)}")
 
 
-def endOfNames(channel: str, user: User) -> Reply:
-    return Reply("366", f"{user.nick} {channel} :End of NAMES list")
+def endOfNames(channelName: str, user: User) -> Reply:
+    return Reply("366", f"{user.nick} {channelName} :End of NAMES list")
 
 
-def noChannelModes(channel: str) -> str:
-    return Reply("477", f"{channel} :Channel doesn't support modes").text
+def noChannelModes(channelName: str) -> Reply:
+    return Reply("477", f"{channelName} :Channel doesn't support modes")

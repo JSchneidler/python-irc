@@ -69,9 +69,8 @@ class Server(ThreadingTCPServer):
 
     def addUser(self, handler: ClientHandler) -> None:
         user = User()
-        self.newClients[getAnonymousIdentifier(handler)] = Client(
-            handler, user
-        )
+        client = Client(handler, user)
+        self.newClients[getAnonymousIdentifier(handler)] = client
         handler.user = user
 
     def removeUser(self, handler: ClientHandler) -> None:
@@ -108,9 +107,11 @@ class Server(ThreadingTCPServer):
         elif message.command == "TOPIC":
             self._handleTopic(client, message)
         elif message.command == "NAMES":
-            log.debug(f"Unhandled command: {message.rawMessage}")
+            self._handleNames(client, message)
         elif message.command == "LIST":
             self._handleList(client, message)
+        elif message.command == "KICK":
+            self._handleKick(client, message)
         elif message.command == "PRIVMSG":
             self._handlePrivMsg(client, message)
         elif message.command == "PING":
@@ -130,6 +131,11 @@ class Server(ThreadingTCPServer):
         else:
             return self.newClients[getAnonymousIdentifier(handler)]
 
+    def _getUserFromNick(self, nick: str) -> User:
+        return next(
+            c.user for c in self.clients.values() if c.user.nick == nick
+        )
+
     # https://ircv3.net/specs/extensions/capability-negotiation
     def _handleCap(self, client: Client) -> None:
         client.handler.send("CAP * LS :")
@@ -139,9 +145,7 @@ class Server(ThreadingTCPServer):
         try:
             self._requireParams(client, message)
             if self._userAlreadyRegistered(client.user):
-                client.handler.send(
-                    self._makeReply(client, Reply.alreadyRegistered())
-                )
+                self._replyNumeric(client, Reply.alreadyRegistered())
             else:
                 client.user.password = message.params[0]
         except FailedParamValidation:
@@ -150,14 +154,12 @@ class Server(ThreadingTCPServer):
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.1.2
     def _handleNick(self, client: Client, message: Message) -> None:
         if len(message.params) == 0:
-            client.handler.send(self._makeReply(client, Reply.noNickGiven()))
+            self._replyNumeric(client, Reply.noNickGiven())
         else:
             nick = message.params[0]
             try:
                 next(c for c in self.clients.values() if c.user.nick == nick)
-                client.handler.send(
-                    self._makeReply(client, Reply.nickInUse(nick))
-                )
+                self._replyNumeric(client, Reply.nickInUse(nick))
             except StopIteration:
                 log.info(f"Changing nick from {client.user.nick} to {nick}")
                 client.user.nick = nick
@@ -167,9 +169,7 @@ class Server(ThreadingTCPServer):
         try:
             self._requireParams(client, message, 4)
             if client.user.username:
-                client.handler.send(
-                    self._makeReply(client, Reply.alreadyRegistered())
-                )
+                self._replyNumeric(client, Reply.alreadyRegistered())
             else:
                 client.user.username = message.params[0]
                 client.user.mode = int(message.params[1])
@@ -197,7 +197,7 @@ class Server(ThreadingTCPServer):
             if message.params[0] == "0":
                 for channelName in self.channels:
                     channel = self.channels[channelName]
-                    if client.user.username in channel.users:
+                    if client.user.username in channel.getAllUsers():
                         channel.removeUser(client.user)
             else:
                 channels = message.params[0].split(",")
@@ -214,35 +214,19 @@ class Server(ThreadingTCPServer):
                     if channelName in self.channels:
                         channel = self.channels[channelName]
                         if channel.key and key != channel.key:
-                            client.handler.send(
-                                Reply.badChannelKey(channelName)
+                            self._replyNumeric(
+                                client, Reply.badChannelKey(channelName)
                             )
                             break
+                        channel.addUser(client.user)
                     else:
-                        channel = Channel(channelName, key)
+                        channel = Channel(channelName, client.user, key)
                         self.channels[channelName] = channel
-                    channel.addUser(client.user)
-                    client.handler.send(
-                        (
-                            f":{self._getClientIdentifier(client)}"
-                            f" JOIN {channelName}"
-                        )
-                    )
-                    client.handler.send(
-                        Reply.topic(channelName, channel.topic)
-                    )
-                    client.handler.send(
-                        self._makeReply(
-                            client,
-                            Reply.names(
-                                channelName, client.user, channel.users
-                            ),
-                        )
-                    )
-                    client.handler.send(
-                        self._makeReply(
-                            client, Reply.endOfNames(channelName, client.user)
-                        )
+                    self._sendToChannel(client, channel, f"JOIN {channelName}")
+                    self._replyNumeric(client, Reply.topic(channel))
+                    self._replyNumeric(client, Reply.names(channel))
+                    self._replyNumeric(
+                        client, Reply.endOfNames(channelName, client.user)
                     )
         except FailedParamValidation:
             pass
@@ -261,14 +245,12 @@ class Server(ThreadingTCPServer):
             for channelName in channels:
                 if channelName in self.channels:
                     channel = self.channels[channelName]
+                    msg = f"PART {message.params[0]}"
+                    if partMessage:
+                        msg += f" :{partMessage}"
+                    self._sendToChannel(client, channel, msg)
                     channel.removeUser(client.user)
-            response = (
-                f":{self._getClientIdentifier(client)}"
-                f" PART {message.params[0]}"
-            )
-            if partMessage:
-                response += f" :{partMessage}"
-            client.handler.send(response)
+                    # TODO: If no users in channel, delete channel
         except FailedParamValidation:
             pass
 
@@ -279,7 +261,7 @@ class Server(ThreadingTCPServer):
 
             channelName = message.params[0]
             if channelName in self.channels:
-                client.handler.send(Reply.noChannelModes(channelName))
+                self._replyNumeric(client, Reply.noChannelModes(channelName))
 
         except FailedParamValidation:
             pass
@@ -314,9 +296,7 @@ class Server(ThreadingTCPServer):
                         )
                     )
                 else:
-                    client.handler.send(
-                        Reply.topic(channelName, channel.topic)
-                    )
+                    self._replyNumeric(client, Reply.topic(channel))
             else:
                 # TODO: ERR_NOTONCHANNEL?
                 pass
@@ -325,7 +305,12 @@ class Server(ThreadingTCPServer):
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.2.5
     def _handleNames(self, client: Client, message: Message):
-        pass
+        channels = message.params[0].split(",")
+
+        for channelName in channels:
+            if channelName in self.channels:
+                channel = self.channels[channelName]
+                self._replyNumeric(client, Reply.names(channel))
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.2.6
     def _handleList(self, client: Client, message: Message):
@@ -338,10 +323,60 @@ class Server(ThreadingTCPServer):
         for channelName in channels:
             channel = self.channels[channelName]
             client.handler.send(
-                f"{channelName} {len(channel.users)} :{channel.topic}"
+                f"{channelName} {len(channel.getAllUsers())} :{channel.topic}"
             )
 
         client.handler.send(":End of LIST")
+
+    # https://datatracker.ietf.org/doc/html/rfc2812#section-3.2.8
+    def _handleKick(self, client: Client, message: Message):
+        try:
+            self._requireParams(client, message, 2)
+
+            channelNames = message.params[0].split(",")
+            nicks = message.params[1].split(",")
+            try:
+                reason = " ".join(message.params[2:]).lstrip(":")
+            except IndexError:
+                reason = None
+
+            if len(channelNames) == 1:
+                channel = self.channels[channelNames[0]]
+                if channel.isOperator(client.user) or client.user.isOperator:
+                    for nick in nicks:
+                        user = self._getUserFromNick(nick)
+                        if user and user.username in channel.users:
+                            msg = f"KICK {channel.name} {nick}"
+                            if reason:
+                                msg += f" {reason}"
+                            self._sendToChannel(client, channel, msg)
+                            channel.removeUser(user)
+            elif len(channelNames) == len(nicks):
+                isOperator = False
+                for channelName in channelNames:
+                    channel = self.channels[channelName]
+                    isOperator = (
+                        channel.isOperator(client.user)
+                        or client.user.isOperator
+                    )
+                if isOperator:
+                    for channelName in channelNames:
+                        channel = self.channels[channelName]
+                        for nick in nicks:
+                            user = self._getUserFromNick(nick)
+                            if user and user.username in channel.users:
+                                msg = f"KICK {channel.name} {nick}"
+                                if reason:
+                                    msg += f" {reason}"
+                                self._sendToChannel(client, channel, msg)
+                                channel.removeUser(user)
+                else:
+                    # TODO: ERR_CHANOPRIVSNEEDED
+                    pass
+            else:
+                pass
+        except FailedParamValidation:
+            pass
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.3.1
     def _handlePrivMsg(self, client: Client, message: Message):
@@ -349,7 +384,12 @@ class Server(ThreadingTCPServer):
             self._requireParams(client, message, 2)
 
             target = message.params[0]
-            text = " ".join(message.params[1:])
+            text = " ".join(message.params[1:]).lstrip(":")
+
+            if target in self.channels:
+                channel = self.channels[target]
+                msg = f"PRIVMSG {channel.name} :{text}"
+                self._sendToChannel(client, channel, msg, True)
 
         except FailedParamValidation:
             pass
@@ -360,7 +400,6 @@ class Server(ThreadingTCPServer):
 
     # https://datatracker.ietf.org/doc/html/rfc2813#section-5.2.1
     def _sendWelcome(self, client: Client) -> None:
-        assert client.user.nick is not None
         assert client.user.username is not None
         replies = [
             Reply.welcome(
@@ -378,19 +417,17 @@ class Server(ThreadingTCPServer):
             ),
         ]
         for reply in replies:
-            client.handler.send(self._makeReply(client, reply))
+            self._replyNumeric(client, reply)
         self._sendLUsers(client)
         self._sendMotd(client)
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.4.1
     def _sendMotd(self, client: Client) -> None:
-        client.handler.send(
-            self._makeReply(client, Reply.motdStart(self.host))
-        )
+        self._replyNumeric(client, Reply.motdStart(self.host))
         if self.motd:
             for line in self.motd:
-                client.handler.send(self._makeReply(client, Reply.motd(line)))
-        client.handler.send(self._makeReply(client, Reply.endOfMotd()))
+                self._replyNumeric(client, Reply.motd(line))
+        self._replyNumeric(client, Reply.endOfMotd())
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.4.2
     def _sendLUsers(self, client: Client) -> None:
@@ -402,25 +439,40 @@ class Server(ThreadingTCPServer):
             Reply.lUserMe(len(self.clients)),
         ]
         for reply in replies:
-            client.handler.send(self._makeReply(client, reply))
+            self._replyNumeric(client, reply)
+
+    def _sendToChannel(
+        self,
+        sender: Client,
+        channel: Channel,
+        message: str,
+        excludeSender: bool = False,
+    ) -> None:
+        for username in channel.getAllUsers():
+            client = self.clients[username]
+            if excludeSender and client == sender:
+                continue
+
+            client.handler.send(
+                f":{self._getClientIdentifier(sender)} {message}"
+            )
 
     # TODO: Make decorator?
     def _requireParams(
         self, client: Client, message: Message, paramCount: int = 1
     ) -> None:
         if (not message.params) or (len(message.params) < paramCount):
-            client.handler.send(
-                self._makeReply(client, Reply.needMoreParams(message.command))
-            )
+            self._replyNumeric(client, Reply.needMoreParams(message.command))
             raise FailedParamValidation(message.command)
 
-    def _makeReply(self, client: Client, reply: Reply.Reply) -> str:
-        return (
+    def _replyNumeric(self, client: Client, reply: Reply.Reply):
+        message = (
             f"{self._getPrefix()}"
-            f" {client.user.username}"
             f" {reply.code}"
+            f" {client.user.username}"
             f" {reply.text}"
         )
+        client.handler.send(message)
 
     def _userAlreadyRegistered(self, user: User) -> bool:
         return user.password is not None
@@ -432,5 +484,5 @@ class Server(ThreadingTCPServer):
         return f"{client.user.nick}!{client.user.username}@{self.host}"
 
 
-def getAnonymousIdentifier(clientHandler: ClientHandler) -> str:
-    return f"{clientHandler.getHost()}:{clientHandler.getPort()}"
+def getAnonymousIdentifier(handler: ClientHandler) -> str:
+    return f"{handler.getHost()}:{handler.getPort()}"

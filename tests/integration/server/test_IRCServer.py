@@ -77,7 +77,7 @@ def test_Server_pass_notEnoughParameters(server):
     client.sendall(b"PASS\r\n")
     response = client.recv(1024).decode("utf-8")
 
-    assert response == ":127.0.0.1 None 461 PASS :Not enough parameters\r\n"
+    assert response == ":127.0.0.1 461 None PASS :Not enough parameters\r\n"
 
 
 def test_Server_nick(server):
@@ -90,7 +90,7 @@ def test_Server_nick_noNicknameGiven(server):
     client.sendall(b"NICK\r\n")
     response = client.recv(1024).decode("utf-8")
 
-    assert response == ":127.0.0.1 None 431 :No nickname given\r\n"
+    assert response == ":127.0.0.1 431 None :No nickname given\r\n"
 
 
 def test_Server_user(server):
@@ -101,18 +101,18 @@ def test_Server_user(server):
     responses = readWelcome(client)
 
     expectedResponses = [
-        ":127.0.0.1 guest 001 :Welcome to the Internet Relay Network\r\nguest!guest@127.0.0.1\r\n",
-        ":127.0.0.1 guest 002 :Your host is 127.0.0.1, running version 0.0.1\r\n",
-        ":127.0.0.1 guest 003 :This server was created N/A\r\n",
-        ":127.0.0.1 guest 004 :127.0.0.1 0.0.1 aiwroOs OovaimnqpsrtklbeI\r\n",
-        ":127.0.0.1 guest 251 :There are 0 users and 0 services on 1 server\r\n",
-        ":127.0.0.1 guest 252 0 :operator(s) online\r\n",
-        ":127.0.0.1 guest 253 1 :unknown connection(s)\r\n",
-        ":127.0.0.1 guest 254 0 :channels formed\r\n",
-        ":127.0.0.1 guest 255 :I have 0 clients and 0 servers\r\n",
-        ":127.0.0.1 guest 375 :- 127.0.0.1 Message of the day - \r\n",
-        ":127.0.0.1 guest 372 :- test\r\n",
-        ":127.0.0.1 guest 376 :End of MOTD command\r\n",
+        ":127.0.0.1 001 guest :Welcome to the Internet Relay Network\r\nguest!guest@127.0.0.1\r\n",
+        ":127.0.0.1 002 guest :Your host is 127.0.0.1, running version 0.0.1\r\n",
+        ":127.0.0.1 003 guest :This server was created N/A\r\n",
+        ":127.0.0.1 004 guest :127.0.0.1 0.0.1 aiwroOs OovaimnqpsrtklbeI\r\n",
+        ":127.0.0.1 251 guest :There are 0 users and 0 services on 1 server\r\n",
+        ":127.0.0.1 252 guest 0 :operator(s) online\r\n",
+        ":127.0.0.1 253 guest 1 :unknown connection(s)\r\n",
+        ":127.0.0.1 254 guest 0 :channels formed\r\n",
+        ":127.0.0.1 255 guest :I have 0 clients and 0 servers\r\n",
+        ":127.0.0.1 375 guest :- 127.0.0.1 Message of the day - \r\n",
+        ":127.0.0.1 372 guest :- test\r\n",
+        ":127.0.0.1 376 guest :End of MOTD command\r\n",
     ]
     assert responses == expectedResponses
 
@@ -122,7 +122,7 @@ def test_Server_user_notEnoughParameters(server):
     client.sendall(b"USER\r\n")
     response = client.recv(1024).decode("utf-8")
 
-    assert response == ":127.0.0.1 None 461 USER :Not enough parameters\r\n"
+    assert response == ":127.0.0.1 461 None USER :Not enough parameters\r\n"
 
 
 def test_Server_join(server):
@@ -136,9 +136,9 @@ def test_Server_join(server):
 
     expectedResponses = [
         ":guest!guest@127.0.0.1 JOIN #test\r\n",
-        "#test :No topic is set\r\n",
-        ":127.0.0.1 guest 353 #test = guest :guest\r\n",
-        ":127.0.0.1 guest 366 guest #test :End of NAMES list\r\n",
+        ":127.0.0.1 331 guest #test :No topic is set\r\n",
+        ":127.0.0.1 353 guest = #test :@guest\r\n",
+        ":127.0.0.1 366 guest guest #test :End of NAMES list\r\n",
     ]
 
     assert responses == expectedResponses
@@ -152,7 +152,7 @@ def test_Server_join_notEnoughParameters(server):
     client.sendall(b"JOIN\r\n")
     response = client.recv(1024).decode("utf-8")
 
-    assert response == ":127.0.0.1 guest 461 JOIN :Not enough parameters\r\n"
+    assert response == ":127.0.0.1 461 guest JOIN :Not enough parameters\r\n"
 
 
 def test_Server_part(server):
