@@ -1,4 +1,5 @@
 from socketserver import ThreadingTCPServer
+from threading import Lock
 from typing import NamedTuple
 from datetime import datetime
 
@@ -41,6 +42,8 @@ class Server(ThreadingTCPServer):
     clients: Clients = {}
     newClients: Clients = {}
 
+    lock: Lock = Lock()
+
     def __init__(
         self,
         host: str,
@@ -68,68 +71,71 @@ class Server(ThreadingTCPServer):
         log.info("Server stopped")
 
     def addUser(self, handler: ClientHandler) -> None:
-        user = User()
-        client = Client(handler, user)
-        self.newClients[getAnonymousIdentifier(handler)] = client
-        handler.user = user
+        with self.lock:
+            user = User()
+            client = Client(handler, user)
+            self.newClients[_getAnonymousIdentifier(handler)] = client
+            handler.user = user
 
     def removeUser(self, handler: ClientHandler) -> None:
-        if handler.user and handler.user.username:
-            log.info(f"Removing user {handler.user.username}")
-            for channelName in self.channels:
-                channel = self.channels[channelName]
-                channel.removeUser(handler.user)
-            del self.clients[handler.user.username]
-        elif getAnonymousIdentifier(handler) in self.newClients:
-            del self.newClients[getAnonymousIdentifier(handler)]
-        else:
-            raise ClientNotFound(handler)
+        with self.lock:
+            if handler.user and handler.user.username:
+                log.info(f"Removing user {handler.user.username}")
+                for channelName in self.channels:
+                    channel = self.channels[channelName]
+                    channel.removeUser(handler.user)
+                del self.clients[handler.user.username]
+            elif _getAnonymousIdentifier(handler) in self.newClients:
+                del self.newClients[_getAnonymousIdentifier(handler)]
+            else:
+                raise ClientNotFound(handler)
 
     def handleMessage(self, handler: ClientHandler, rawMessage: str) -> None:
-        client = self._getClient(handler)
-        message = Message(rawMessage, client.user)
-        if message.command == "QUIT":
-            pass
-        elif message.command == "CAP":
-            self._handleCap(client)
-        elif message.command == "PASS":
-            self._handlePass(client, message)
-        elif message.command == "NICK":
-            self._handleNick(client, message)
-        elif message.command == "USER":
-            self._handleUser(client, message)
-        elif message.command == "JOIN":
-            self._handleJoin(client, message)
-        elif message.command == "PART":
-            self._handlePart(client, message)
-        elif message.command == "MODE":
-            self._handleMode(client, message)
-        elif message.command == "TOPIC":
-            self._handleTopic(client, message)
-        elif message.command == "NAMES":
-            self._handleNames(client, message)
-        elif message.command == "LIST":
-            self._handleList(client, message)
-        elif message.command == "KICK":
-            self._handleKick(client, message)
-        elif message.command == "PRIVMSG":
-            self._handlePrivMsg(client, message)
-        elif message.command == "PING":
-            self._handlePing(client)
-        elif message.command == "ERROR":
-            log.debug(f"Unhandled command: {message.rawMessage}")
-        elif message.command == "MOTD":
-            self._sendMotd(client)
-        elif message.command == "LUSERS":
-            self._sendLUsers(client)
-        else:
-            log.debug(f"Unhandled command: {message.rawMessage}")
+        with self.lock:
+            client = self._getClient(handler)
+            message = Message(rawMessage, client.user)
+            if message.command == "QUIT":
+                pass
+            elif message.command == "CAP":
+                self._handleCap(client)
+            elif message.command == "PASS":
+                self._handlePass(client, message)
+            elif message.command == "NICK":
+                self._handleNick(client, message)
+            elif message.command == "USER":
+                self._handleUser(client, message)
+            elif message.command == "JOIN":
+                self._handleJoin(client, message)
+            elif message.command == "PART":
+                self._handlePart(client, message)
+            elif message.command == "MODE":
+                self._handleMode(client, message)
+            elif message.command == "TOPIC":
+                self._handleTopic(client, message)
+            elif message.command == "NAMES":
+                self._handleNames(client, message)
+            elif message.command == "LIST":
+                self._handleList(client, message)
+            elif message.command == "KICK":
+                self._handleKick(client, message)
+            elif message.command == "PRIVMSG":
+                self._handlePrivMsg(client, message)
+            elif message.command == "PING":
+                self._handlePing(client)
+            elif message.command == "ERROR":
+                log.debug(f"Unhandled command: {message.rawMessage}")
+            elif message.command == "MOTD":
+                self._sendMotd(client)
+            elif message.command == "LUSERS":
+                self._sendLUsers(client)
+            else:
+                log.debug(f"Unhandled command: {message.rawMessage}")
 
     def _getClient(self, handler: ClientHandler) -> Client:
         if handler.user and handler.user.username:
             return self.clients[handler.user.username]
         else:
-            return self.newClients[getAnonymousIdentifier(handler)]
+            return self.newClients[_getAnonymousIdentifier(handler)]
 
     def _getUserFromNick(self, nick: str) -> User:
         return next(
@@ -158,7 +164,13 @@ class Server(ThreadingTCPServer):
         else:
             nick = message.params[0]
             try:
-                next(c for c in self.clients.values() if c.user.nick == nick)
+                otherClients = list(
+                    filter(
+                        lambda c: c != client,
+                        (self.clients | self.newClients).values(),
+                    )
+                )
+                next(c for c in otherClients if c.user.nick == nick)
                 self._replyNumeric(client, Reply.nickInUse(nick))
             except StopIteration:
                 log.info(f"Changing nick from {client.user.nick} to {nick}")
@@ -178,7 +190,7 @@ class Server(ThreadingTCPServer):
                 self._sendWelcome(client)
 
                 self.clients[client.user.username] = client
-                del self.newClients[getAnonymousIdentifier(client.handler)]
+                del self.newClients[_getAnonymousIdentifier(client.handler)]
                 log.info(
                     (
                         f"Registered user {client.user.username}"
@@ -453,9 +465,7 @@ class Server(ThreadingTCPServer):
             if excludeSender and client == sender:
                 continue
 
-            client.handler.send(
-                f":{self._getClientIdentifier(sender)} {message}"
-            )
+            client.handler.send(f":{_getClientIdentifier(sender)} {message}")
 
     # TODO: Make decorator?
     def _requireParams(
@@ -469,7 +479,7 @@ class Server(ThreadingTCPServer):
         message = (
             f"{self._getPrefix()}"
             f" {reply.code}"
-            f" {client.user.username}"
+            f" {client.user.nick}"
             f" {reply.text}"
         )
         client.handler.send(message)
@@ -480,9 +490,12 @@ class Server(ThreadingTCPServer):
     def _getPrefix(self) -> str:
         return f":{self.host}"
 
-    def _getClientIdentifier(self, client: Client) -> str:
-        return f"{client.user.nick}!{client.user.username}@{self.host}"
+
+def _getClientIdentifier(client: Client) -> str:
+    return (
+        f"{client.user.nick}!{client.user.username}@{client.handler.getHost()}"
+    )
 
 
-def getAnonymousIdentifier(handler: ClientHandler) -> str:
+def _getAnonymousIdentifier(handler: ClientHandler) -> str:
     return f"{handler.getHost()}:{handler.getPort()}"

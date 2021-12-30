@@ -1,4 +1,5 @@
 from pytest import fixture
+from typing import Callable, Generator
 import threading
 import socket
 
@@ -9,7 +10,7 @@ SERVER_PORT = 0
 
 
 @fixture
-def server():
+def server() -> Generator[Server, None, None]:
     server = Server(SERVER_HOST, SERVER_PORT, ["test"], "N/A")
     serverThread = threading.Thread(target=server.start)
     serverThread.start()
@@ -20,15 +21,15 @@ def server():
     serverThread.join()
 
 
-def createClient(server: Server):
+def createClient(server: Server) -> socket.socket:
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect((server.host, server.port))
 
     return client
 
 
-def readFactory(client):
-    def read(lines: int):
+def readFactory(client) -> Callable:
+    def read(lines: int) -> list[str]:
         responses = []
         for i in range(lines):
             responses.append(client.recv(1024).decode("utf-8"))
@@ -37,11 +38,11 @@ def readFactory(client):
     return read
 
 
-def readWelcome(client):
+def readWelcome(client) -> list[str]:
     return readFactory(client)(12)
 
 
-def readJoin(client):
+def readJoin(client) -> list[str]:
     return readFactory(client)(4)
 
 
@@ -77,7 +78,7 @@ def test_Server_pass_notEnoughParameters(server):
     client.sendall(b"PASS\r\n")
     response = client.recv(1024).decode("utf-8")
 
-    assert response == ":127.0.0.1 461 None PASS :Not enough parameters\r\n"
+    assert response == ":127.0.0.1 461 * PASS :Not enough parameters\r\n"
 
 
 def test_Server_nick(server):
@@ -90,7 +91,17 @@ def test_Server_nick_noNicknameGiven(server):
     client.sendall(b"NICK\r\n")
     response = client.recv(1024).decode("utf-8")
 
-    assert response == ":127.0.0.1 431 None :No nickname given\r\n"
+    assert response == ":127.0.0.1 431 * :No nickname given\r\n"
+
+
+def test_Server_nick_nicknameInUse(server):
+    client = createClient(server)
+    client.sendall(b"NICK test\r\n")
+    client2 = createClient(server)
+    client2.sendall(b"NICK test\r\n")
+    response = client2.recv(1024).decode("utf-8")
+
+    assert response == ":127.0.0.1 433 * test :Nickname is already in use\r\n"
 
 
 def test_Server_user(server):
@@ -122,7 +133,7 @@ def test_Server_user_notEnoughParameters(server):
     client.sendall(b"USER\r\n")
     response = client.recv(1024).decode("utf-8")
 
-    assert response == ":127.0.0.1 461 None USER :Not enough parameters\r\n"
+    assert response == ":127.0.0.1 461 * USER :Not enough parameters\r\n"
 
 
 def test_Server_join(server):
