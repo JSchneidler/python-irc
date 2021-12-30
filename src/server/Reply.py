@@ -115,8 +115,8 @@ def names(channel: Channel) -> Reply:
     return Reply("353", f"= {channel.name} :{' '.join(operators + users)}")
 
 
-def endOfNames(channelName: str, user: User) -> Reply:
-    return Reply("366", f"{user.nick} {channelName} :End of NAMES list")
+def endOfNames(channelName: str) -> Reply:
+    return Reply("366", f"{channelName} :End of NAMES list")
 
 
 def noChannelModes(channelName: str) -> Reply:

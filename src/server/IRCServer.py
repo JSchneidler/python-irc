@@ -237,9 +237,7 @@ class Server(ThreadingTCPServer):
                     self._sendToChannel(client, channel, f"JOIN {channelName}")
                     self._replyNumeric(client, Reply.topic(channel))
                     self._replyNumeric(client, Reply.names(channel))
-                    self._replyNumeric(
-                        client, Reply.endOfNames(channelName, client.user)
-                    )
+                    self._replyNumeric(client, Reply.endOfNames(channelName))
         except FailedParamValidation:
             pass
 

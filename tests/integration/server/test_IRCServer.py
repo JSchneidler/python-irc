@@ -1,187 +1,127 @@
-from pytest import fixture
-from typing import Callable, Generator
-import threading
-import socket
+from socket import socket
 
 from server.IRCServer import Server
 
-SERVER_HOST = "localhost"
-SERVER_PORT = 0
+from .utils import createClient, readLine, registerClient, readJoin
 
 
-@fixture
-def server() -> Generator[Server, None, None]:
-    server = Server(SERVER_HOST, SERVER_PORT, ["test"], "N/A")
-    serverThread = threading.Thread(target=server.start)
-    serverThread.start()
-
-    yield server
-
-    server.stop()
-    serverThread.join()
-
-
-def createClient(server: Server) -> socket.socket:
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.connect((server.host, server.port))
-
-    return client
-
-
-def readFactory(client) -> Callable:
-    def read(lines: int) -> list[str]:
-        responses = []
-        for i in range(lines):
-            responses.append(client.recv(1024).decode("utf-8"))
-        return responses
-
-    return read
-
-
-def readWelcome(client) -> list[str]:
-    return readFactory(client)(12)
-
-
-def readJoin(client) -> list[str]:
-    return readFactory(client)(4)
-
-
-def test_Server_connect(server):
+def test_Server_connect(server: Server):
     createClient(server)
 
 
-def test_Server_connectMultipleClients(server):
+def test_Server_connectMultipleClients(server: Server):
     createClient(server)
     createClient(server)
 
 
-def test_Server_cap(server):
-    client = createClient(server)
+def test_Server_cap(client: socket):
     expectedResponse = "CAP * LS :\r\n"
 
     client.sendall(b"CAP LS\r\n")
-    response = client.recv(1024).decode("utf-8")
+    response = readLine(client)
     assert response == expectedResponse
 
     client.sendall(b"CAP LS 302\r\n")
-    response = client.recv(1024).decode("utf-8")
+    response = readLine(client)
     assert response == expectedResponse
 
 
-def test_Server_pass(server):
-    client = createClient(server)
+def test_Server_pass(client: socket):
     client.sendall(b"PASS password\r\n")
 
 
-def test_Server_pass_notEnoughParameters(server):
-    client = createClient(server)
+def test_Server_pass_notEnoughParameters(client: socket):
     client.sendall(b"PASS\r\n")
-    response = client.recv(1024).decode("utf-8")
+    response = readLine(client)
 
     assert response == ":127.0.0.1 461 * PASS :Not enough parameters\r\n"
 
 
-def test_Server_nick(server):
-    client = createClient(server)
+def test_Server_nick(client: socket):
     client.sendall(b"NICK nickname\r\n")
 
 
-def test_Server_nick_noNicknameGiven(server):
-    client = createClient(server)
+def test_Server_nick_noNicknameGiven(client: socket):
     client.sendall(b"NICK\r\n")
-    response = client.recv(1024).decode("utf-8")
+    response = readLine(client)
 
     assert response == ":127.0.0.1 431 * :No nickname given\r\n"
 
 
-def test_Server_nick_nicknameInUse(server):
+def test_Server_nick_nicknameInUse(server: Server):
     client = createClient(server)
     client.sendall(b"NICK test\r\n")
     client2 = createClient(server)
     client2.sendall(b"NICK test\r\n")
-    response = client2.recv(1024).decode("utf-8")
+    response = readLine(client)
 
     assert response == ":127.0.0.1 433 * test :Nickname is already in use\r\n"
 
 
-def test_Server_user(server):
-    client = createClient(server)
-    client.sendall(b"NICK guest\r\n")
-    client.sendall(b"USER guest 0 * *\r\n")
-
-    responses = readWelcome(client)
+def test_Server_user(client: socket):
+    responses = registerClient(client)
 
     expectedResponses = [
-        ":127.0.0.1 001 guest :Welcome to the Internet Relay Network\r\nguest!guest@127.0.0.1\r\n",
-        ":127.0.0.1 002 guest :Your host is 127.0.0.1, running version 0.0.1\r\n",
-        ":127.0.0.1 003 guest :This server was created N/A\r\n",
-        ":127.0.0.1 004 guest :127.0.0.1 0.0.1 aiwroOs OovaimnqpsrtklbeI\r\n",
-        ":127.0.0.1 251 guest :There are 0 users and 0 services on 1 server\r\n",
-        ":127.0.0.1 252 guest 0 :operator(s) online\r\n",
-        ":127.0.0.1 253 guest 1 :unknown connection(s)\r\n",
-        ":127.0.0.1 254 guest 0 :channels formed\r\n",
-        ":127.0.0.1 255 guest :I have 0 clients and 0 servers\r\n",
-        ":127.0.0.1 375 guest :- 127.0.0.1 Message of the day - \r\n",
-        ":127.0.0.1 372 guest :- test\r\n",
-        ":127.0.0.1 376 guest :End of MOTD command\r\n",
+        ":127.0.0.1 001 test :Welcome to the Internet Relay Network\r\ntest!test@127.0.0.1\r\n",
+        ":127.0.0.1 002 test :Your host is 127.0.0.1, running version 0.0.1\r\n",
+        ":127.0.0.1 003 test :This server was created N/A\r\n",
+        ":127.0.0.1 004 test :127.0.0.1 0.0.1 aiwroOs OovaimnqpsrtklbeI\r\n",
+        ":127.0.0.1 251 test :There are 0 users and 0 services on 1 server\r\n",
+        ":127.0.0.1 252 test 0 :operator(s) online\r\n",
+        ":127.0.0.1 253 test 1 :unknown connection(s)\r\n",
+        ":127.0.0.1 254 test 0 :channels formed\r\n",
+        ":127.0.0.1 255 test :I have 0 clients and 0 servers\r\n",
+        ":127.0.0.1 375 test :- 127.0.0.1 Message of the day - \r\n",
+        ":127.0.0.1 372 test :- test\r\n",
+        ":127.0.0.1 376 test :End of MOTD command\r\n",
     ]
+
     assert responses == expectedResponses
 
 
-def test_Server_user_notEnoughParameters(server):
-    client = createClient(server)
+def test_Server_user_notEnoughParameters(client: socket):
     client.sendall(b"USER\r\n")
-    response = client.recv(1024).decode("utf-8")
+    response = readLine(client)
 
     assert response == ":127.0.0.1 461 * USER :Not enough parameters\r\n"
 
 
-def test_Server_join(server):
-    client = createClient(server)
-    client.sendall(b"NICK guest\r\n")
-    client.sendall(b"USER guest 0 * *\r\n")
-    readWelcome(client)
-    client.sendall(b"JOIN #test\r\n")
+def test_Server_join(client: socket):
+    registerClient(client)
+    client.sendall(b"JOIN #chan\r\n")
 
     responses = readJoin(client)
 
     expectedResponses = [
-        ":guest!guest@127.0.0.1 JOIN #test\r\n",
-        ":127.0.0.1 331 guest #test :No topic is set\r\n",
-        ":127.0.0.1 353 guest = #test :@guest\r\n",
-        ":127.0.0.1 366 guest guest #test :End of NAMES list\r\n",
+        ":test!test@127.0.0.1 JOIN #chan\r\n",
+        ":127.0.0.1 331 test #chan :No topic is set\r\n",
+        ":127.0.0.1 353 test = #chan :@test\r\n",
+        ":127.0.0.1 366 test #chan :End of NAMES list\r\n",
     ]
 
     assert responses == expectedResponses
 
 
-def test_Server_join_notEnoughParameters(server):
-    client = createClient(server)
-    client.sendall(b"NICK guest\r\n")
-    client.sendall(b"USER guest 0 * *\r\n")
-    readWelcome(client)
+def test_Server_join_notEnoughParameters(client: socket):
+    registerClient(client)
     client.sendall(b"JOIN\r\n")
-    response = client.recv(1024).decode("utf-8")
+    response = readLine(client)
 
-    assert response == ":127.0.0.1 461 guest JOIN :Not enough parameters\r\n"
+    assert response == ":127.0.0.1 461 test JOIN :Not enough parameters\r\n"
 
 
-def test_Server_part(server):
-    client = createClient(server)
-    client.sendall(b"NICK guest\r\n")
-    client.sendall(b"USER guest 0 * *\r\n")
-    readWelcome(client)
-    client.sendall(b"JOIN #test\r\n")
+def test_Server_part(client: socket):
+    registerClient(client)
+    client.sendall(b"JOIN #chan\r\n")
     readJoin(client)
-    client.sendall(b"PART #test Tired\r\n")
-    response = client.recv(1024).decode("utf-8")
+    client.sendall(b"PART #chan Tired\r\n")
+    response = readLine(client)
 
-    assert response == ":guest!guest@127.0.0.1 PART #test :Tired\r\n"
+    assert response == ":test!test@127.0.0.1 PART #chan :Tired\r\n"
 
 
-def test_Server_ping(server):
-    client = createClient(server)
+def test_Server_ping(client: socket):
     client.sendall(b"PING\r\n")
-    response = client.recv(1024).decode("utf-8")
+    response = readLine(client)
 
     assert response == "PONG\r\n"
