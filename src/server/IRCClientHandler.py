@@ -1,11 +1,15 @@
 from socketserver import StreamRequestHandler
 from typing import TYPE_CHECKING, Optional
-import logging
 
+from irc.logger import logger
 from irc.IRCUser import User
+
 
 if TYPE_CHECKING:
     from .IRCServer import Server
+
+
+log = logger.getChild("server.IRCClientHandler")
 
 
 class ClientHandler(StreamRequestHandler):
@@ -17,7 +21,7 @@ class ClientHandler(StreamRequestHandler):
     def setup(self) -> None:
         super().setup()
 
-        logging.debug(f"New connection from {self.getClientAddress()}")
+        log.debug(f"New connection from {self.getClientAddress()}")
 
         self.server.addUser(self)
 
@@ -26,7 +30,7 @@ class ClientHandler(StreamRequestHandler):
             line = self.rfile.readline().strip().decode("utf-8")
 
             if len(line) > 0:
-                logging.debug(f"{self.getClientAddress()} wrote: {line}")
+                log.debug(f"{self.getClientAddress()} wrote: {line}")
                 self.server.handleMessage(self, line)
             else:
                 break
@@ -34,12 +38,12 @@ class ClientHandler(StreamRequestHandler):
     def send(self, message: str) -> None:
         message = message + "\r\n"
         self.wfile.write(message.encode("utf-8"))
-        logging.debug(
+        log.debug(
             f"Server wrote to {self.getClientAddress()}: {repr(message)}"
         )
 
     def finish(self) -> None:
-        logging.debug(f"Connection from {self.getClientAddress()} closed")
+        log.debug(f"Connection from {self.getClientAddress()} closed")
         self.server.removeUser(self)
 
         super().finish()

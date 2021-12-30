@@ -7,6 +7,7 @@ authors = ["Jordan Schneidler <jordan.schneidler@gmail.com>"]
 [tool.poetry.dependencies]
 python = "^3.10"
 typed-argument-parser = "^1.7.1"
+colorama = "^0.4.4"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"

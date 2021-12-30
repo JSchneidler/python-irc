@@ -1,7 +1,9 @@
 import socket
-import logging
 
+from irc.logger import logger
 from irc.IRCChannel import Channels
+
+log = logger.getChild("client.IRCClient")
 
 
 # https://datatracker.ietf.org/doc/html/rfc1459#section-1.2
@@ -19,12 +21,10 @@ class Client:
     def connect(self) -> None:
         """Connects to the server"""
         self.client.connect((self.host, self.port))
-        logging.info(
-            "Connected to server at " + self.host + ":" + str(self.port)
-        )
+        log.info("Connected to server at " + self.host + ":" + str(self.port))
 
     def disconnect(self) -> None:
         """Disconnects from the server"""
         # self.client.shutdown(socket.SHUT_RDWR)
         self.client.close()
-        logging.info("Disconnected from server")
+        log.info("Disconnected from server")

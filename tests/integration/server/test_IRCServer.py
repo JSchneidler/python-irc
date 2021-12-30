@@ -166,3 +166,11 @@ def test_Server_part(server):
     response = client.recv(1024).decode("utf-8")
 
     assert response == ":guest!guest@127.0.0.1 PART #test :Tired\r\n"
+
+
+def test_Server_ping(server):
+    client = createClient(server)
+    client.sendall(b"PING\r\n")
+    response = client.recv(1024).decode("utf-8")
+
+    assert response == "PONG\r\n"

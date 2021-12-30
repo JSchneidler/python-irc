@@ -106,3 +106,7 @@ def names(channel: str, user: User, users: Users) -> Reply:
 
 def endOfNames(channel: str, user: User) -> Reply:
     return Reply("366", f"{user.nick} {channel} :End of NAMES list")
+
+
+def noChannelModes(channel: str) -> str:
+    return Reply("477", f"{channel} :Channel doesn't support modes").text

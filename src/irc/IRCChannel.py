@@ -1,6 +1,6 @@
 from typing import Optional
-import logging
 
+from .logger import logger
 from .IRCMessage import Messages
 from .IRCUser import User, Users
 
@@ -14,6 +14,9 @@ class NoUsername(Exception):
 
 class UserAlreadyInChannel(Exception):
     pass
+
+
+log = logger.getChild("IRCChannel")
 
 
 # https://datatracker.ietf.org/doc/html/rfc1459#section-1.3
@@ -35,16 +38,14 @@ class Channel:
         if user.username in self.users:
             raise UserAlreadyInChannel()
         elif user.username:
-            logging.info(f"Adding user {user.username} to channel {self.name}")
+            log.info(f"Adding user {user.username} to channel {self.name}")
             self.users[user.username] = user
         else:
             raise NoUsername(user)
 
     def removeUser(self, user: User) -> None:
         if user.username in self.users:
-            logging.info(
-                f"Removing user {user.username} from channel {self.name}"
-            )
+            log.info(f"Removing user {user.username} from channel {self.name}")
             del self.users[user.username]
 
 
