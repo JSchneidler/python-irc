@@ -447,9 +447,10 @@ class Server(ThreadingTCPServer):
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.4.2
     def _sendLUsers(self, client: Client) -> None:
+        operators = filter(lambda c: c.user.isOperator, self.clients.values())
         replies = [
             Reply.lUserClient(len(self.clients), 0),
-            Reply.lUserOp(len(self.clients)),  # TODO: Implement ops
+            Reply.lUserOp(len(list(operators))),
             Reply.lUserUnknown(len(self.newClients)),
             Reply.lUserChannels(len(self.channels)),
             Reply.lUserMe(len(self.clients)),
