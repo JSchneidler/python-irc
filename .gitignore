@@ -1,4 +1,3 @@
-.vscode
 .coverage
 *.pyc
 __pycache__

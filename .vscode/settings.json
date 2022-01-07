@@ -1,0 +1,7 @@
+{
+    "restructuredtext.confPath": "${workspaceFolder}",
+    "python.testing.pytestArgs": [
+        "--no-cov",
+        "tests"
+    ]
+}
