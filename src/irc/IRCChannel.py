@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Optional
 
 from .logger import logger
@@ -7,6 +8,16 @@ from .IRCUser import User, Users
 
 MAX_CHANNEL_NAME_LENGTH = 50
 VALID_CHANNEL_PREFIXES = ["&", "#", "+", "!"]
+
+
+@dataclass
+class Modes:
+    anonymous: bool = False
+    inviteOnly: bool = False
+    moderated: bool = False
+    topic: bool = False
+    userLimit: bool = False
+    channelKey: bool = False
 
 
 class ChannelNameTooLong(Exception):
@@ -31,11 +42,13 @@ log = logger.getChild("IRCChannel")
 # https://datatracker.ietf.org/doc/html/rfc1459#section-1.3
 class Channel:
     name: str
-    key: Optional[str] = None
-    topic: Optional[str] = None
     users: Users = {}
     operators: Users = {}
     messages: Messages = []
+    modes: Modes = Modes()
+    topic: Optional[str] = None
+    key: Optional[str] = None
+    userLimit: Optional[int] = None
 
     def __init__(self, name: str, creator: User, key: str = None):
         if len(name) > MAX_CHANNEL_NAME_LENGTH:
@@ -44,8 +57,9 @@ class Channel:
             raise InvalidChannelPrefix(f"Invalid channel prefix: {name}")
 
         self.name = name
-        self.key = key
         self.addOperator(creator)
+        if key:
+            self.setKey(key)
 
     def getUsers(self) -> Users:
         return self.users
@@ -59,6 +73,14 @@ class Channel:
     def isOperator(self, user: User) -> bool:
         return user.username in self.operators
 
+    def setKey(self, key: str) -> None:
+        self.key = key
+        self.modes.channelKey = True
+
+    def removeKey(self) -> None:
+        self.key = None
+        self.modes.channelKey = False
+
     def setTopic(self, topic: str) -> None:
         self.topic = topic
 
@@ -66,18 +88,59 @@ class Channel:
         if user.username in self.users:
             raise UserAlreadyInChannel()
         elif user.username:
-            log.info(f"Adding user {user.username} to channel {self.name}")
+            log.info(f"Adding user {user.nick} to channel {self.name}")
             self.users[user.username] = user
         else:
             raise NoUsername(user)
 
-    def addOperator(self, user: User) -> None:
-        self.operators[user.username] = user
-
     def removeUser(self, user: User) -> None:
         if user.username in self.users:
-            log.info(f"Removing user {user.username} from channel {self.name}")
+            log.info(f"Removing user {user.nick} from channel {self.name}")
             del self.users[user.username]
+
+    def addOperator(self, user: User) -> None:
+        assert user.username is not None
+        self.operators[user.username] = user
+
+    def removeOperator(self, user: User) -> None:
+        assert user.username is not None
+        del self.operators[user.username]
+
+    def setAnonymous(self, anonymous: bool) -> None:
+        self.modes.anonymous = anonymous
+
+    def setInviteOnly(self, inviteOnly: bool) -> None:
+        self.modes.inviteOnly = inviteOnly
+
+    def setModerated(self, moderated: bool) -> None:
+        self.modes.moderated = moderated
+
+    def setTopicRestrict(self, restrict: bool) -> None:
+        self.modes.topic = restrict
+
+    def setUserLimit(self, limit: int) -> None:
+        self.userLimit = limit
+        self.modes.userLimit = True
+
+    def removeUserLimit(self) -> None:
+        self.userLimit = None
+        self.modes.userLimit = False
+
+    def getSimpleModes(self) -> str:
+        modes = ""
+        if self.modes.anonymous:
+            modes += "a"
+        if self.modes.inviteOnly:
+            modes += "i"
+        if self.modes.moderated:
+            modes += "m"
+        if self.modes.topic:
+            modes += "t"
+        if self.modes.userLimit:
+            modes += "l"
+        if self.modes.channelKey:
+            modes += "k"
+        return modes
 
 
 Channels = dict[str, Channel]
