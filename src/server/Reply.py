@@ -54,6 +54,10 @@ def erroneusNick(nick: str) -> Reply:
     return Reply("432", f"{nick} :Erroneous nickname")
 
 
+def channelModeIs(channel: Channel) -> Reply:
+    return Reply("324", f"{channel.name} {channel.getSimpleModes()}")
+
+
 def motdStart(server: str) -> Reply:
     return Reply("375", f":- {server} Message of the day - ")
 
@@ -64,6 +68,30 @@ def motd(text: str) -> Reply:
 
 def endOfMotd() -> Reply:
     return Reply("376", ":End of MOTD command")
+
+
+def youreOper() -> Reply:
+    return Reply("381", ":You are now an IRC operator")
+
+
+def usersStart() -> Reply:
+    return Reply("392", ":UserID   Terminal  Host")
+
+
+def users(user: User, clientIdentifier: str) -> Reply:
+    return Reply("393", f":{user.username} * {clientIdentifier}")
+
+
+def endOfUsers() -> Reply:
+    return Reply("394", ":End of users")
+
+
+def noUsers() -> Reply:
+    return Reply("395", ":Nobody logged in")
+
+
+def userModeIs(mode: str) -> Reply:
+    return Reply("221", mode)
 
 
 def lUserClient(users: int, services: int) -> Reply:
@@ -96,8 +124,36 @@ def noSuchChannel(channelName: str) -> Reply:
     return Reply("403", f"{channelName} :No such channel")
 
 
+def usersDisabled() -> Reply:
+    return Reply("446", ":USERS has been disabled")
+
+
+def passwordMismatch() -> Reply:
+    return Reply("464", ":Password incorrect")
+
+
 def badChannelKey(channelName: str) -> Reply:
     return Reply("475", f"{channelName} :Cannot join channel (+k)")
+
+
+def userHost(user: User, clientIdentifier: str) -> Reply:
+    isOperator = "*" if user.isOperator() else None
+    isAway = "-" if user.isAway() else None
+
+    return Reply(
+        "302",
+        f":{user.nick}{isOperator}={isAway}{clientIdentifier}",
+    )
+
+
+def channelList(channel: Channel) -> Reply:
+    return Reply(
+        "322", f"{channel.name} {len(channel.getAllUsers())} :{channel.topic}"
+    )
+
+
+def channelListEnd() -> Reply:
+    return Reply("323", ":End of LIST")
 
 
 def topic(channel: Channel) -> Reply:
@@ -119,5 +175,23 @@ def endOfNames(channelName: str) -> Reply:
     return Reply("366", f"{channelName} :End of NAMES list")
 
 
+def time(server: str, time: str) -> Reply:
+    return Reply("391", f"{server} :{time}")
+
+
+def unknownMode(channel: Channel, mode: str) -> Reply:
+    return Reply(
+        "472", f"{mode} :is unknown mode char to me for {channel.name}"
+    )
+
+
 def noChannelModes(channelName: str) -> Reply:
     return Reply("477", f"{channelName} :Channel doesn't support modes")
+
+
+def unknownModeFlag() -> Reply:
+    return Reply("501", ":Unknown MODE flag")
+
+
+def usersDontMatch() -> Reply:
+    return Reply("502", ":Cannot change mode for other users")

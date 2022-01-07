@@ -1,7 +1,8 @@
 from tap import Tap
+from bcrypt import hashpw, gensalt
 
 from irc.logger import LogLevel, logger
-from server.IRCServer import Server
+from server.IRCServer import Server, OperatorCredential
 
 
 class CliArgumentParser(Tap):
@@ -12,11 +13,23 @@ class CliArgumentParser(Tap):
     log_level: LogLevel = LogLevel.INFO  # Log level
 
 
+operatorCredentials = [
+    OperatorCredential(
+        hashpw("test".encode(), gensalt()), hashpw("test".encode(), gensalt())
+    )
+]
+
+
 def main():
     args = CliArgumentParser().parse_args()
     # logger.setAllLevels(args.log_level)
     logger.setLevel(args.log_level.value)
-    server = Server(args.host, args.port, ["Welcome to the IRC server!"])
+    server = Server(
+        args.host,
+        args.port,
+        ["Welcome to the IRC server!"],
+        operatorCredentials=operatorCredentials,
+    )
 
     try:
         server.start()
