@@ -15,10 +15,14 @@ Test
 ----
 * ``poetry run pytest``
 
-Run Client
-----------
-* ``poetry run src/client/cli.py``
+Client
+------
+* See `src/client/README.rst <src/client/README.rst>`_
 
-Run Server
-----------
-* ``poetry run src/server/cli.py``
+Server
+------
+* See `src/server/README.rst <src/server/README.rst>`_
+
+IRC Lib
+-------
+* See `src/irc/README.rst <src/irc/README.rst>`_
