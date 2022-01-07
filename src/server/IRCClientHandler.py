@@ -27,7 +27,7 @@ class ClientHandler(StreamRequestHandler):
 
     def handle(self) -> None:
         while True:
-            line = self.rfile.readline().strip().decode("utf-8")
+            line = self.rfile.readline().strip().decode()
 
             if len(line) > 0:
                 log.debug(f"{self.getClientAddress()} wrote: {line}")
@@ -37,7 +37,7 @@ class ClientHandler(StreamRequestHandler):
 
     def send(self, message: str) -> None:
         message = message + "\r\n"
-        self.wfile.write(message.encode("utf-8"))
+        self.wfile.write(message.encode())
         log.debug(
             f"Server wrote to {self.getClientAddress()}: {repr(message)}"
         )
