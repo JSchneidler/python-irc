@@ -12,7 +12,7 @@ def createClient(server: Server) -> socket:
 
 
 def readLine(client: socket):
-    return client.recv(1024).decode("utf-8")
+    return client.recv(1024).decode()
 
 
 def readFactory(client) -> Callable:
@@ -34,6 +34,6 @@ def readJoin(client) -> list[str]:
 
 
 def registerClient(client: socket, nick: str = "test"):
-    client.sendall(f"NICK {nick}\r\n".encode("utf-8"))
-    client.sendall(f"USER {nick} 0 * *\r\n".encode("utf-8"))
+    client.sendall(f"NICK {nick}\r\n".encode())
+    client.sendall(f"USER {nick} 0 * *\r\n".encode())
     return readWelcome(client)

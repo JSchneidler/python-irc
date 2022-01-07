@@ -14,7 +14,7 @@ SERVER_PORT = 0
 @fixture
 def server() -> Generator[Server, None, None]:
     server = Server(SERVER_HOST, SERVER_PORT, ["test"], "N/A")
-    serverThread = Thread(target=server.start)
+    serverThread = Thread(target=server.start, daemon=True)
     serverThread.start()
 
     yield server
