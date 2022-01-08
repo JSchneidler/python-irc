@@ -23,6 +23,6 @@ Server
 ------
 * See `src/server/README.rst <src/server/README.rst>`_
 
-IRC Lib
--------
+IRC Core
+--------
 * See `src/irc/README.rst <src/irc/README.rst>`_
