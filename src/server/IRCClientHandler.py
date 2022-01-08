@@ -13,13 +13,14 @@ log = logger.getChild("server.IRCClientHandler")
 
 
 class ClientHandler(StreamRequestHandler):
-    user: Optional[User] = None
+    user: Optional[User]
 
     # Inherited from StreamRequestHandler
     server: "Server"
 
     def setup(self) -> None:
         super().setup()
+        self.user = None
 
         log.debug(f"New connection from {self.getClientAddress()}")
 

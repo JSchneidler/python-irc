@@ -52,15 +52,15 @@ OperatorCredentials = list[OperatorCredential]
 class Server(ThreadingTCPServer):
     host: str
     port: int
-    started: bool = False
+    started: bool
 
     motd: list[str]
     createdDate: str
-    channels: Channels = {}
-    clients: Clients = {}
-    newClients: Clients = {}
+    channels: Channels
+    clients: Clients
+    newClients: Clients
     operatorCredentials: OperatorCredentials
-    usersDisabled: bool = False
+    usersDisabled: bool
 
     lock: Lock = Lock()
 
@@ -73,6 +73,11 @@ class Server(ThreadingTCPServer):
         operatorCredentials: OperatorCredentials = [],
     ) -> None:
         super().__init__((host, port), ClientHandler)
+        self.started = False
+        self.channels = {}
+        self.clients = {}
+        self.newClients = {}
+        self.usersDisabled = False
 
         self.daemon_threads = True
         self.block_on_close = False

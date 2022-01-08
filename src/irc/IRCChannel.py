@@ -36,25 +36,37 @@ class UserAlreadyInChannel(Exception):
     pass
 
 
+class NoUserInChannel(Exception):
+    pass
+
+
 log = logger.getChild("IRCChannel")
 
 
 # https://datatracker.ietf.org/doc/html/rfc1459#section-1.3
 class Channel:
     name: str
-    users: Users = {}
-    operators: Users = {}
-    messages: Messages = []
-    modes: Modes = Modes()
-    topic: Optional[str] = None
-    key: Optional[str] = None
-    userLimit: Optional[int] = None
+    users: Users
+    operators: Users
+    messages: Messages
+    modes: Modes
+    topic: Optional[str]
+    key: Optional[str]
+    userLimit: Optional[int]
 
     def __init__(self, name: str, creator: User, key: str = None):
         if len(name) > MAX_CHANNEL_NAME_LENGTH:
             raise ChannelNameTooLong(f"Channel name too long: {name}")
         if not name[0] in VALID_CHANNEL_PREFIXES:
             raise InvalidChannelPrefix(f"Invalid channel prefix: {name}")
+
+        self.users = {}
+        self.operators = {}
+        self.messages = []
+        self.modes = Modes()
+        self.topic = None
+        self.key = None
+        self.userLimit = None
 
         self.name = name
         self.addOperator(creator)
@@ -97,14 +109,24 @@ class Channel:
         if user.username in self.users:
             log.info(f"Removing user {user.nick} from channel {self.name}")
             del self.users[user.username]
+        else:
+            raise NoUserInChannel(user)
 
     def addOperator(self, user: User) -> None:
-        assert user.username is not None
-        self.operators[user.username] = user
+        if user.username in self.operators:
+            raise UserAlreadyInChannel()
+        elif user.username:
+            log.info(f"Adding operator {user.nick} to channel {self.name}")
+            self.operators[user.username] = user
+        else:
+            raise NoUsername(user)
 
     def removeOperator(self, user: User) -> None:
-        assert user.username is not None
-        del self.operators[user.username]
+        if user.username in self.operators:
+            log.info(f"Removing operator {user.nick} from channel {self.name}")
+            del self.operators[user.username]
+        else:
+            raise NoUserInChannel(user)
 
     def setAnonymous(self, anonymous: bool) -> None:
         self.modes.anonymous = anonymous

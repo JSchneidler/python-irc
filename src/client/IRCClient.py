@@ -1,4 +1,4 @@
-import socket
+from socket import socket, AF_INET, SOCK_STREAM
 
 from irc.logger import logger
 from irc.IRCChannel import Channels
@@ -10,13 +10,16 @@ log = logger.getChild("client.IRCClient")
 class Client:
     host: str
     port: int
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client: socket
 
-    channels: Channels = {}
+    channels: Channels
 
     def __init__(self, host: str, port: int) -> None:
+        self.channels = {}
+
         self.host = host
         self.port = port
+        self.client = socket(AF_INET, SOCK_STREAM)
 
     def connect(self) -> None:
         """Connects to the server"""

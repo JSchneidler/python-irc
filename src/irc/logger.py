@@ -1,6 +1,6 @@
 from colorama import init, Fore, Back
 from enum import Enum
-from logging import Formatter, StreamHandler, Logger, getLogger
+from logging import Formatter, StreamHandler, getLogger
 
 init(autoreset=True)
 
@@ -22,19 +22,5 @@ LOG_FORMATTER = Formatter(
 stdOut = StreamHandler()
 stdOut.setFormatter(LOG_FORMATTER)
 
-
-class StandardLogger(Logger):
-    def __init__(self, name: str, level: LogLevel = LogLevel.INFO):
-        super().__init__(name)
-        self.setLevel(level.value)
-        self.addHandler(stdOut)
-
-    def setAllLevels(self, level: LogLevel) -> None:
-        self.setLevel(level.value)
-        for handler in self.handlers:
-            handler.setLevel(level.value)
-
-
-# logger = StandardLogger("irc")
 logger = getLogger("irc")
 logger.addHandler(stdOut)

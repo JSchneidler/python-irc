@@ -6,13 +6,15 @@ from .IRCUser import User
 # https://datatracker.ietf.org/doc/html/rfc1459#section-2.3
 class Message:
     rawMessage: str
-    prefix: Optional[str] = None
+    prefix: Optional[str]
     command: str
-    params: list[str] = []
-
-    user: Optional[User] = None
+    params: list[str]
+    user: User
 
     def __init__(self, rawMessage, user: User):
+        self.prefix = None
+        self.params = []
+
         self.rawMessage = rawMessage
         self.user = user
 

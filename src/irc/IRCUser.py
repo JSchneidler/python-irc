@@ -12,11 +12,18 @@ class Modes:
 
 
 class User:
-    password: Optional[str] = None
-    nick: str = "*"
-    username: Optional[str] = None
-    realname: Optional[str] = None
-    modes: Modes = Modes()
+    password: Optional[str]
+    nick: str
+    username: Optional[str]
+    realname: Optional[str]
+    modes: Modes
+
+    def __init__(self):
+        self.password = None
+        self.nick = "*"
+        self.username = None
+        self.realname = None
+        self.modes = Modes()
 
     def setNick(self, nick: str) -> None:
         if len(nick) > MAX_NICK_LENGTH:
