@@ -2,18 +2,27 @@ from pytest import fixture
 from typing import Generator
 from threading import Thread
 from socket import socket
+from bcrypt import hashpw, gensalt
 
-from server.IRCServer import Server
+from server.IRCServer import Server, OperatorCredential
 
 from .utils import createClient
 
 SERVER_HOST = "localhost"
 SERVER_PORT = 0
 
+operatorCredentials = [
+    OperatorCredential(
+        hashpw("test".encode(), gensalt()), hashpw("test".encode(), gensalt())
+    )
+]
+
 
 @fixture
 def server() -> Generator[Server, None, None]:
-    server = Server(SERVER_HOST, SERVER_PORT, ["test"], "N/A")
+    server = Server(
+        SERVER_HOST, SERVER_PORT, ["test"], "N/A", operatorCredentials
+    )
     serverThread = Thread(target=server.start, daemon=True)
     serverThread.start()
 
