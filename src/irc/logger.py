@@ -20,7 +20,8 @@ LOG_FORMATTER = Formatter(
     f"{Fore.YELLOW} %(message)s"
 )
 stdOut = StreamHandler()
-stdOut.setFormatter(LOG_FORMATTER)
+# TODO: Use colored formatter only for CLI output
+# stdOut.setFormatter(LOG_FORMATTER)
 
 logger = getLogger("irc")
 logger.addHandler(stdOut)

@@ -228,10 +228,10 @@ class Server(ThreadingTCPServer):
                     client.user.setInvisible(True)
                 client.user.realname = " ".join(message.params[3:])
 
-                self._sendWelcome(client)
-
                 self.clients[client.user.username] = client
                 del self.newClients[_getAnonymousIdentifier(client.handler)]
+                self._sendWelcome(client)
+
                 log.info(
                     (
                         f"Registered user {client.user.nick}"

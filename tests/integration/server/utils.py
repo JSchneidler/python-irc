@@ -1,4 +1,4 @@
-from typing import Callable, Optional, TextIO
+from typing import Callable, Optional
 from socket import socket, AF_INET, SOCK_STREAM
 from select import select
 
