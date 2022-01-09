@@ -14,7 +14,7 @@ class Reply:
 def welcome(nick: str, username: str, host: str) -> Reply:
     return Reply(
         "001",
-        f":Welcome to the Internet Relay Network\r\n{nick}!{username}@{host}",
+        f":Welcome to the Internet Relay Network {nick}!{username}@{host}",
     )
 
 

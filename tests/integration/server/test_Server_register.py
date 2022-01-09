@@ -41,7 +41,7 @@ def test_Server_user(client: socket):
     responses = registerClient(client)
 
     expectedResponses = [
-        ":127.0.0.1 001 test :Welcome to the Internet Relay Network\r\ntest!test@127.0.0.1\r\n",
+        ":127.0.0.1 001 test :Welcome to the Internet Relay Network test!test@127.0.0.1\r\n",
         ":127.0.0.1 002 test :Your host is 127.0.0.1, running version 0.0.1\r\n",
         ":127.0.0.1 003 test :This server was created N/A\r\n",
         ":127.0.0.1 004 test :127.0.0.1 0.0.1 aiwroOs OovaimnqpsrtklbeI\r\n",

@@ -1,5 +1,6 @@
-from typing import Callable
+from typing import Callable, Optional, TextIO
 from socket import socket, AF_INET, SOCK_STREAM
+from select import select
 
 from server.IRCServer import Server
 
@@ -11,12 +12,16 @@ def createClient(server: Server) -> socket:
     return client
 
 
-def readLine(client: socket):
-    return client.recv(1024).decode()
+def readLine(client: socket) -> Optional[str]:
+    socketIO = client.makefile("r", newline="\r\n")
+    ready = select([socketIO], [], [], 2)
+    if ready[0]:
+        return socketIO.readline()
+    return None
 
 
-def readFactory(client) -> Callable:
-    def read(lines: int) -> list[str]:
+def readFactory(client: socket) -> Callable:
+    def read(lines: int) -> list[Optional[str]]:
         responses = []
         for i in range(lines):
             responses.append(readLine(client))
@@ -25,11 +30,11 @@ def readFactory(client) -> Callable:
     return read
 
 
-def readWelcome(client) -> list[str]:
+def readWelcome(client: socket) -> list[str]:
     return readFactory(client)(12)
 
 
-def readJoin(client) -> list[str]:
+def readJoin(client: socket) -> list[str]:
     return readFactory(client)(4)
 
 

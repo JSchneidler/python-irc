@@ -38,5 +38,5 @@ line-length = 79
 files = ["src"]
 
 [tool.pytest.ini_options]
-addopts = "-nauto --cov=src -rP --log-level=DEBUG"
+addopts = "-n4 --cov=src"
 testpaths = ["tests"]
