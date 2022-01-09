@@ -112,7 +112,8 @@ class Server(ThreadingTCPServer):
                 log.info(f"Removing user {handler.user.nick}")
                 for channelName in self.channels:
                     channel = self.channels[channelName]
-                    channel.removeUser(handler.user)
+                    if handler.user.username in channel.getAllUsers():
+                        channel.removeUser(handler.user)
                 del self.clients[handler.user.username]
             elif _getAnonymousIdentifier(handler) in self.newClients:
                 del self.newClients[_getAnonymousIdentifier(handler)]

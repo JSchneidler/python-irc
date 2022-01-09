@@ -109,6 +109,8 @@ class Channel:
         if user.username in self.users:
             log.info(f"Removing user {user.nick} from channel {self.name}")
             del self.users[user.username]
+        elif user.username in self.operators:
+            self.removeOperator(user)
         else:
             raise NoUserInChannel(user)
 

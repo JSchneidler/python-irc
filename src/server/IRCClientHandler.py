@@ -28,12 +28,15 @@ class ClientHandler(StreamRequestHandler):
 
     def handle(self) -> None:
         while True:
-            line = self.rfile.readline().strip().decode()
+            try:
+                line = self.rfile.readline().strip().decode()
 
-            if len(line) > 0:
-                log.debug(f"{self.getClientAddress()} wrote: {line}")
-                self.server.handleMessage(self, line)
-            else:
+                if len(line) > 0:
+                    log.debug(f"{self.getClientAddress()} wrote: {line}")
+                    self.server.handleMessage(self, line)
+                else:
+                    break
+            except ConnectionResetError:
                 break
 
     def send(self, message: str) -> None:
