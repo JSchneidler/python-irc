@@ -17,8 +17,8 @@
 
 # -- Project information -----------------------------------------------------
 
-project = "IRC Client and Server"
-copyright = "2021, Jordan Schneidler"
+project = "IRC Library, Client, and Server"
+copyright = "2022, Jordan Schneidler"
 author = "Jordan Schneidler <jordan.schneidler@gmail.com>"
 
 

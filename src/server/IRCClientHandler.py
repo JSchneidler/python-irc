@@ -32,7 +32,7 @@ class ClientHandler(StreamRequestHandler):
                 line = self.rfile.readline().strip().decode()
 
                 if len(line) > 0:
-                    log.debug(f"{self.getClientAddress()} wrote: {line}")
+                    log.debug(f"{self.getClientAddress()} wrote: {repr(line)}")
                     self.server.handleMessage(self, line)
                 else:
                     break

@@ -62,7 +62,7 @@ class Server(ThreadingTCPServer):
     operatorCredentials: OperatorCredentials
     usersDisabled: bool
 
-    lock: Lock = Lock()
+    lock: Lock
 
     def __init__(
         self,
@@ -78,6 +78,7 @@ class Server(ThreadingTCPServer):
         self.clients = {}
         self.newClients = {}
         self.usersDisabled = False
+        self.lock = Lock()
 
         self.daemon_threads = True
         self.block_on_close = False
