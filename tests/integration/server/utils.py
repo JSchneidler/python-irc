@@ -14,7 +14,7 @@ def createClient(server: Server) -> socket:
 
 def readLine(client: socket) -> Optional[str]:
     socketIO = client.makefile("r", newline="\r\n")
-    ready = select([socketIO], [], [], 5)
+    ready = select([socketIO], [], [], 20)
     if ready[0]:
         return socketIO.readline()
     return None
