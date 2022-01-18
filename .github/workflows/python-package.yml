@@ -42,7 +42,7 @@ jobs:
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: poetry install --no-interaction
     - name: Check formatting with black
-      run: poetry run black --check
+      run: poetry run black . --check
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
