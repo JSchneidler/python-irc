@@ -1,6 +1,6 @@
 from socketserver import ThreadingTCPServer
 from threading import Lock
-from typing import Optional
+from typing import Optional, overload
 from datetime import datetime
 
 from dataclasses import dataclass
@@ -80,8 +80,10 @@ class Server(ThreadingTCPServer):
         self.usersDisabled = False
         self.lock = Lock()
 
+        """
         self.daemon_threads = True
         self.block_on_close = False
+        """
 
         self.host = self.server_address[0]
         self.port = self.server_address[1]
@@ -96,7 +98,7 @@ class Server(ThreadingTCPServer):
             self.serve_forever()
 
     def stop(self) -> None:
-        super().shutdown()
+        self.shutdown()
         self.started = False
         log.info("Server stopped")
 
@@ -184,7 +186,7 @@ class Server(ThreadingTCPServer):
 
     # https://ircv3.net/specs/extensions/capability-negotiation
     def _handleCap(self, client: Client) -> None:
-        client.handler.send("CAP * LS :")
+        client.handler.send("CAP * LS :\r\n")
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.1.1
     def _handlePass(self, client: Client, message: Message) -> None:
@@ -280,9 +282,12 @@ class Server(ThreadingTCPServer):
                         self.channels[channelName] = channel
                         log.info(f"{client.user.nick} created {channelName}")
                     self._sendToChannel(client, channel, f"JOIN {channelName}")
-                    self._replyNumeric(client, Reply.topic(channel))
-                    self._replyNumeric(client, Reply.names(channel))
-                    self._replyNumeric(client, Reply.endOfNames(channelName))
+                    replies = [
+                        Reply.topic(channel),
+                        Reply.names(channel),
+                        Reply.endOfNames(channelName),
+                    ]
+                    self._replyNumeric(client, replies)
         except FailedParamValidation:
             pass
 
@@ -453,7 +458,7 @@ class Server(ThreadingTCPServer):
                         (
                             f":{client.user.nick}"
                             f" TOPIC {channel.name}"
-                            f" :{channel.topic}"
+                            f" :{channel.topic}\r\n"
                         )
                     )
                     log.info(
@@ -488,10 +493,12 @@ class Server(ThreadingTCPServer):
         except IndexError:
             channels = self.channels
 
+        replies: list[Reply.Reply] = []
         for channelName in channels:
             channel = self.channels[channelName]
-            self._replyNumeric(client, Reply.channelList(channel))
-        self._replyNumeric(client, Reply.channelListEnd())
+            replies.append(Reply.channelList(channel))
+        replies.append(Reply.channelListEnd())
+        self._replyNumeric(client, replies)
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.2.8
     def _handleKick(self, client: Client, message: Message):
@@ -564,7 +571,7 @@ class Server(ThreadingTCPServer):
             elif target in self.clients:
                 toClient = self.clients[target]
                 msg = f"PRIVMSG {toClient.user.nick} :{text}"
-                toClient.handler.send(f":{client.getIdentifier()} {msg}")
+                toClient.handler.send(f":{client.getIdentifier()} {msg}\r\n")
             else:
                 self._replyNumeric(client, Reply.noSuchNick(target))
         except FailedParamValidation:
@@ -592,7 +599,7 @@ class Server(ThreadingTCPServer):
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.7.2
     def _handlePing(self, client: Client):
-        client.handler.send("PONG")
+        client.handler.send("PONG\r\n")
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-4.6
     def _handleUsers(self, client: Client):
@@ -600,15 +607,17 @@ class Server(ThreadingTCPServer):
             self._replyNumeric(client, Reply.usersDisabled())
             return
 
-        self._replyNumeric(client, Reply.usersStart())
+        replies: list[Reply.Reply] = []
+        replies.append(Reply.usersStart())
         if len(self.clients) == 0:
-            self._replyNumeric(client, Reply.noUsers())
+            replies.append(Reply.noUsers())
         else:
             for client in self.clients.values():
-                self._replyNumeric(
-                    client, Reply.users(client.user, client.getIdentifier())
+                replies.append(
+                    Reply.users(client.user, client.getIdentifier())
                 )
-        self._replyNumeric(client, Reply.endOfUsers())
+        replies.append(Reply.endOfUsers())
+        self._replyNumeric(client, replies)
 
     # https://datatracker.ietf.org/doc/html/rfc2813#section-5.2.1
     def _sendWelcome(self, client: Client) -> None:
@@ -628,33 +637,37 @@ class Server(ThreadingTCPServer):
                 "OovaimnqpsrtklbeI",
             ),
         ]
-        for reply in replies:
-            self._replyNumeric(client, reply)
-        self._sendLUsers(client)
-        self._sendMotd(client)
+        replies += self._lUsers()
+        replies += self._motd(client)
+        self._replyNumeric(client, replies)
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.4.1
     def _sendMotd(self, client: Client) -> None:
-        self._replyNumeric(client, Reply.motdStart(self.host))
+        self._replyNumeric(client, self._motd(client))
+
+    def _motd(self, client: Client) -> list[Reply.Reply]:
+        replies = [Reply.motdStart(self.host)]
         if self.motd:
             for line in self.motd:
-                self._replyNumeric(client, Reply.motd(line))
-        self._replyNumeric(client, Reply.endOfMotd())
+                replies.append(Reply.motd(line))
+        replies.append(Reply.endOfMotd())
+        return replies
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.4.2
     def _sendLUsers(self, client: Client) -> None:
+        self._replyNumeric(client, self._lUsers())
+
+    def _lUsers(self) -> list[Reply.Reply]:
         operators = filter(
             lambda c: c.user.isOperator(), self.clients.values()
         )
-        replies = [
+        return [
             Reply.lUserClient(len(self.clients), 0),
             Reply.lUserOp(len(list(operators))),
             Reply.lUserUnknown(len(self.newClients)),
             Reply.lUserChannels(len(self.channels)),
             Reply.lUserMe(len(self.clients)),
         ]
-        for reply in replies:
-            self._replyNumeric(client, reply)
 
     def _sendToChannel(
         self,
@@ -668,7 +681,7 @@ class Server(ThreadingTCPServer):
             if excludeSender and client == sender:
                 continue
 
-            client.handler.send(f":{sender.getIdentifier()} {message}")
+            client.handler.send(f":{sender.getIdentifier()} {message}\r\n")
 
     # TODO: Make decorator?
     def _requireParams(
@@ -678,14 +691,33 @@ class Server(ThreadingTCPServer):
             self._replyNumeric(client, Reply.needMoreParams(message.command))
             raise FailedParamValidation(message.command)
 
-    def _replyNumeric(self, client: Client, reply: Reply.Reply):
-        message = (
+    @overload
+    def _replyNumeric(self, client: Client, reply: Reply.Reply) -> None:
+        ...
+
+    @overload
+    def _replyNumeric(self, client: Client, reply: list[Reply.Reply]) -> None:
+        ...
+
+    def _replyNumeric(
+        self, client: Client, reply: Reply.Reply | list[Reply.Reply]
+    ) -> None:
+        if isinstance(reply, Reply.Reply):
+            message = self._generateNumericReply(client, reply)
+        else:
+            message = ""
+            for each in reply:
+                message += self._generateNumericReply(client, each)
+
+        client.handler.send(message)
+
+    def _generateNumericReply(self, client: Client, reply: Reply.Reply) -> str:
+        return (
             f"{self._getPrefix()}"
             f" {reply.code}"
             f" {client.user.nick}"
-            f" {reply.text}"
+            f" {reply.text}\r\n"
         )
-        client.handler.send(message)
 
     def _userAlreadyRegistered(self, user: User) -> bool:
         return user.password is not None

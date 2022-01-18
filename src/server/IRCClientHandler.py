@@ -40,8 +40,9 @@ class ClientHandler(StreamRequestHandler):
                 break
 
     def send(self, message: str) -> None:
-        message = message + "\r\n"
         self.wfile.write(message.encode())
+        self.wfile.flush()
+        # fsync(self.wfile.fileno())
         log.debug(
             f"Server wrote to {self.getClientAddress()}: {repr(message)}"
         )

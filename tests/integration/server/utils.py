@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Optional
 from socket import socket, AF_INET, SOCK_STREAM
 from select import select
 
@@ -13,29 +13,29 @@ def createClient(server: Server) -> socket:
 
 
 def readLine(client: socket) -> Optional[str]:
-    socketIO = client.makefile("r", newline="\r\n")
-    ready = select([socketIO], [], [], 20)
-    if ready[0]:
-        return socketIO.readline()
+    response = readLines(client, 1)
+    if response:
+        return response[0]
     return None
 
 
-def readFactory(client: socket) -> Callable:
-    def read(lines: int) -> list[Optional[str]]:
-        responses = []
+def readLines(client: socket, lines: int) -> Optional[list[str]]:
+    socketIO = client.makefile("r", newline="\r\n")
+    ready = select([socketIO], [], [], 5)
+    if ready[0]:
+        responses: list[str] = []
         for i in range(lines):
-            responses.append(readLine(client))
+            responses.append(socketIO.readline())
         return responses
-
-    return read
-
-
-def readWelcome(client: socket) -> list[str]:
-    return readFactory(client)(12)
+    return None
 
 
-def readJoin(client: socket) -> list[str]:
-    return readFactory(client)(4)
+def readWelcome(client: socket) -> Optional[list[str]]:
+    return readLines(client, 12)
+
+
+def readJoin(client: socket) -> Optional[list[str]]:
+    return readLines(client, 4)
 
 
 def registerClient(client: socket, nick: str = "test"):
