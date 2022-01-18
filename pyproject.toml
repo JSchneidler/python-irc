@@ -33,6 +33,7 @@ packages = [
 
 [tool.black]
 line-length = 79
+extend-exclude = '\.venv'
 
 [tool.mypy]
 files = ["src"]
