@@ -4,7 +4,8 @@ from threading import Thread
 from socket import socket
 from bcrypt import hashpw, gensalt
 
-from server.Server import Server, OperatorCredential
+from server.Server import Server
+from server.ServerState import OperatorCredential
 
 from .utils import createClient
 
@@ -20,9 +21,7 @@ operatorCredentials = [
 
 @fixture
 def server() -> Generator[Server, None, None]:
-    server = Server(
-        SERVER_HOST, SERVER_PORT, ["test"], operatorCredentials, "N/A"
-    )
+    server = Server(SERVER_HOST, SERVER_PORT, ["test"], operatorCredentials, "N/A")
     serverThread = Thread(target=server.start, daemon=True)
     serverThread.start()
 

@@ -5,7 +5,7 @@ from pydantic import BaseSettings
 
 from lib.logger import LogLevel
 
-from .Server import OperatorCredential, OperatorCredentials, MOTD
+from .ServerState import OperatorCredential, OperatorCredentials, MOTD
 
 
 DEFAULT_HOST = "localhost"
@@ -25,9 +25,7 @@ class FileConfig(BaseSettings):
     host: Optional[str] = None  # Host to listen on
     port: Optional[int] = None  # Port to listen on
     log_level: Optional[LogLevel] = None  # Log level
-    operator_credentials_path: Optional[
-        str
-    ] = None  # Path to operator credentials file
+    operator_credentials_path: Optional[str] = None  # Path to operator credentials file
     motd_path: Optional[str] = None  # Path to MOTD file
 
     class Config:
@@ -56,9 +54,7 @@ class Config:
                 for line in f.readlines():
                     [userHash, passwordHash] = line.strip().split(":")
                     operatorCredentials.append(
-                        OperatorCredential(
-                            userHash.encode(), passwordHash.encode()
-                        )
+                        OperatorCredential(userHash.encode(), passwordHash.encode())
                     )
                 if len(operatorCredentials) > 0:
                     self.operatorCredentials = operatorCredentials
@@ -82,9 +78,7 @@ class Config:
 
     def getLogLevel(self) -> LogLevel:
         return (
-            self.cliConfig.log_level
-            or self.fileConfig.log_level
-            or DEFAULT_LOG_LEVEL
+            self.cliConfig.log_level or self.fileConfig.log_level or DEFAULT_LOG_LEVEL
         )
 
     def getOperatorCredentials(self) -> Optional[OperatorCredentials]:

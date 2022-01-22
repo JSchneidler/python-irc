@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from .Server import Server
 
 
-log = logger.getChild("server.IRCClientHandler")
+log = logger.getChild("server.ClientHandler")
 
 
 class ClientHandler(StreamRequestHandler):
@@ -24,7 +24,7 @@ class ClientHandler(StreamRequestHandler):
 
         log.debug(f"New connection from {self.getClientAddress()}")
 
-        self.server.addUser(self)
+        self.server.handleClientConnect(self)
 
     def handle(self) -> None:
         while True:
@@ -43,13 +43,11 @@ class ClientHandler(StreamRequestHandler):
         self.wfile.write(message.encode())
         self.wfile.flush()
         # fsync(self.wfile.fileno())
-        log.debug(
-            f"Server wrote to {self.getClientAddress()}: {repr(message)}"
-        )
+        log.debug(f"Server wrote to {self.getClientAddress()}: {repr(message)}")
 
     def finish(self) -> None:
         log.debug(f"Connection from {self.getClientAddress()} closed")
-        self.server.removeUser(self)
+        self.server.handleClientDisconnect(self)
 
         super().finish()
 

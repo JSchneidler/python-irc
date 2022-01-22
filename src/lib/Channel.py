@@ -40,7 +40,7 @@ class NoUserInChannel(Exception):
     pass
 
 
-log = logger.getChild("IRCChannel")
+log = logger.getChild("Channel")
 
 
 # https://datatracker.ietf.org/doc/html/rfc1459#section-1.3

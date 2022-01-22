@@ -7,7 +7,7 @@ from server.Server import Server
 
 def createClient(server: Server) -> socket:
     client = socket(AF_INET, SOCK_STREAM)
-    client.connect((server.host, server.port))
+    client.connect((server.serverState.host, server.serverState.port))
 
     return client
 
@@ -21,7 +21,7 @@ def readLine(client: socket) -> Optional[str]:
 
 def readLines(client: socket, lines: int) -> Optional[list[str]]:
     socketIO = client.makefile("r", newline="\r\n")
-    ready = select([socketIO], [], [], 5)
+    ready = select([socketIO], [], [], 2)
     if ready[0]:
         responses: list[str] = []
         for i in range(lines):

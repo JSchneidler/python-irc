@@ -1,7 +1,7 @@
 from lib.logger import logger
 
 from .Server import Server
-from .config import Config
+from .Config import Config
 
 
 def main():

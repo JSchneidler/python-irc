@@ -3,7 +3,7 @@ from socket import socket, AF_INET, SOCK_STREAM
 from lib.logger import logger
 from lib.Channel import Channels
 
-log = logger.getChild("client.IRCClient")
+log = logger.getChild("client.Client")
 
 
 # https://datatracker.ietf.org/doc/html/rfc1459#section-1.2
