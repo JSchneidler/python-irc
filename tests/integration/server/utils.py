@@ -2,7 +2,7 @@ from typing import Optional
 from socket import socket, AF_INET, SOCK_STREAM
 from select import select
 
-from server.IRCServer import Server
+from server.Server import Server
 
 
 def createClient(server: Server) -> socket:

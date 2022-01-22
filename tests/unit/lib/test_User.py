@@ -1,6 +1,6 @@
 from pytest import raises
 
-from irc.IRCUser import User
+from lib.User import User
 
 
 def test_User():

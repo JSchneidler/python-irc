@@ -4,7 +4,7 @@ from threading import Thread
 from socket import socket
 from bcrypt import hashpw, gensalt
 
-from server.IRCServer import Server, OperatorCredential
+from server.Server import Server, OperatorCredential
 
 from .utils import createClient
 

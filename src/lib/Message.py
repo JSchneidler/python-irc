@@ -1,6 +1,6 @@
 from typing import Optional
 
-from .IRCUser import User
+from .User import User
 
 
 # https://datatracker.ietf.org/doc/html/rfc1459#section-2.3
@@ -11,7 +11,7 @@ class Message:
     params: list[str]
     user: User
 
-    def __init__(self, rawMessage, user: User):
+    def __init__(self, rawMessage: str, user: User):
         self.prefix = None
         self.params = []
 

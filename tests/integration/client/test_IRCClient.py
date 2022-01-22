@@ -1,7 +1,7 @@
 import threading
 from socketserver import BaseRequestHandler, ThreadingTCPServer
 
-from client.IRCClient import Client
+from client.Client import Client
 
 
 SERVER_HOST = "localhost"

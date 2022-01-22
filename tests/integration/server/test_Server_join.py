@@ -1,6 +1,6 @@
 from socket import socket
 
-from server.IRCServer import Server
+from server.Server import Server
 
 from .utils import createClient, readLine, registerClient, readJoin
 

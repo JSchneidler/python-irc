@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from typing import Optional
 
 from .logger import logger
-from .IRCMessage import Messages
-from .IRCUser import User, Users
+from .Message import Messages
+from .User import User, Users
 
 
 MAX_CHANNEL_NAME_LENGTH = 50

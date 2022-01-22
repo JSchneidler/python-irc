@@ -3,9 +3,9 @@ from typing import Optional
 from tap import Tap
 from pydantic import BaseSettings
 
-from irc.logger import LogLevel
+from lib.logger import LogLevel
 
-from .IRCServer import OperatorCredential, OperatorCredentials, MOTD
+from .Server import OperatorCredential, OperatorCredentials, MOTD
 
 
 DEFAULT_HOST = "localhost"

@@ -1,12 +1,12 @@
 from socketserver import StreamRequestHandler
 from typing import TYPE_CHECKING, Optional
 
-from irc.logger import logger
-from irc.IRCUser import User
+from lib.logger import logger
+from lib.User import User
 
 
 if TYPE_CHECKING:
-    from .IRCServer import Server
+    from .Server import Server
 
 
 log = logger.getChild("server.IRCClientHandler")

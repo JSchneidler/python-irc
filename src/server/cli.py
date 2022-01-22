@@ -1,6 +1,6 @@
-from irc.logger import logger
+from lib.logger import logger
 
-from .IRCServer import Server
+from .Server import Server
 from .config import Config
 
 

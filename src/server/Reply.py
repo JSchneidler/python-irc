@@ -1,5 +1,5 @@
-from irc.IRCUser import User
-from irc.IRCChannel import Channel
+from lib.User import User
+from lib.Channel import Channel
 
 
 class Reply:

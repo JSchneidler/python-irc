@@ -6,12 +6,12 @@ from datetime import datetime
 from dataclasses import dataclass
 from bcrypt import checkpw
 
-from irc.logger import logger
-from irc.IRCChannel import Channels, Channel
-from irc.IRCUser import User
-from irc.IRCMessage import Message
+from lib.logger import logger
+from lib.Channel import Channels, Channel
+from lib.User import User
+from lib.Message import Message
 
-from .IRCClientHandler import ClientHandler
+from .ClientHandler import ClientHandler
 from . import Reply
 
 

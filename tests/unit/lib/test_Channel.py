@@ -1,6 +1,6 @@
 from pytest import raises
 
-from irc.IRCChannel import (
+from lib.Channel import (
     Channel,
     ChannelNameTooLong,
     MAX_CHANNEL_NAME_LENGTH,
@@ -9,7 +9,7 @@ from irc.IRCChannel import (
     NoUsername,
     UserAlreadyInChannel,
 )
-from irc.IRCUser import User
+from lib.User import User
 
 
 def createChannel():

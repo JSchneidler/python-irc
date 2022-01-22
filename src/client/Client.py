@@ -1,7 +1,7 @@
 from socket import socket, AF_INET, SOCK_STREAM
 
-from irc.logger import logger
-from irc.IRCChannel import Channels
+from lib.logger import logger
+from lib.Channel import Channels
 
 log = logger.getChild("client.IRCClient")
 
