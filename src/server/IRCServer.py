@@ -49,12 +49,15 @@ class OperatorCredential:
 OperatorCredentials = list[OperatorCredential]
 
 
+MOTD = list[str]
+
+
 class Server(ThreadingTCPServer):
     host: str
     port: int
     started: bool
 
-    motd: list[str]
+    motd: MOTD
     createdDate: str
     channels: Channels
     clients: Clients
@@ -68,9 +71,9 @@ class Server(ThreadingTCPServer):
         self,
         host: str,
         port: int,
-        motd: list[str] = [],
+        motd: Optional[MOTD],
+        operatorCredentials: Optional[OperatorCredentials],
         createdDate: str = datetime.now().isoformat(),
-        operatorCredentials: OperatorCredentials = [],
     ) -> None:
         super().__init__((host, port), ClientHandler)
         self.started = False
@@ -80,16 +83,11 @@ class Server(ThreadingTCPServer):
         self.usersDisabled = False
         self.lock = Lock()
 
-        """
-        self.daemon_threads = True
-        self.block_on_close = False
-        """
-
         self.host = self.server_address[0]
         self.port = self.server_address[1]
-        self.motd = motd
+        self.motd = motd or []
         self.createdDate = createdDate
-        self.operatorCredentials = operatorCredentials
+        self.operatorCredentials = operatorCredentials or []
 
     def start(self) -> None:
         if not self.started:
@@ -310,7 +308,10 @@ class Server(ThreadingTCPServer):
             pass
 
     def _part(
-        self, client: Client, channel: Channel, partMessage: str = None
+        self,
+        client: Client,
+        channel: Channel,
+        partMessage: Optional[str] = None,
     ) -> None:
         message = f"PART {channel.name}"
         if partMessage:
@@ -547,7 +548,7 @@ class Server(ThreadingTCPServer):
         client: Client,
         kickedUser: User,
         channel: Channel,
-        reason: str = None,
+        reason: Optional[str] = None,
     ) -> None:
         message = f"KICK {channel.name} {kickedUser.nick}"
         if reason:
@@ -607,8 +608,7 @@ class Server(ThreadingTCPServer):
             self._replyNumeric(client, Reply.usersDisabled())
             return
 
-        replies: list[Reply.Reply] = []
-        replies.append(Reply.usersStart())
+        replies: list[Reply.Reply] = [Reply.usersStart()]
         if len(self.clients) == 0:
             replies.append(Reply.noUsers())
         else:
@@ -636,9 +636,9 @@ class Server(ThreadingTCPServer):
                 "aiwroOs",
                 "OovaimnqpsrtklbeI",
             ),
+            *self._lUsers(),
+            *self._motd(client),
         ]
-        replies += self._lUsers()
-        replies += self._motd(client)
         self._replyNumeric(client, replies)
 
     # https://datatracker.ietf.org/doc/html/rfc2812#section-3.4.1

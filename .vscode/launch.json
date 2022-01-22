@@ -15,7 +15,7 @@
             "name": "Server CLI",
             "type": "python",
             "request": "launch",
-            "program": "src/server/cli.py",
+            "module": "server.cli",
             "console": "integratedTerminal",
             "args": [
                 "--log_level=DEBUG"

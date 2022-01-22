@@ -21,7 +21,7 @@ operatorCredentials = [
 @fixture
 def server() -> Generator[Server, None, None]:
     server = Server(
-        SERVER_HOST, SERVER_PORT, ["test"], "N/A", operatorCredentials
+        SERVER_HOST, SERVER_PORT, ["test"], operatorCredentials, "N/A"
     )
     serverThread = Thread(target=server.start, daemon=True)
     serverThread.start()

@@ -54,7 +54,7 @@ class Channel:
     key: Optional[str]
     userLimit: Optional[int]
 
-    def __init__(self, name: str, creator: User, key: str = None):
+    def __init__(self, name: str, creator: User, key: Optional[str] = None):
         if len(name) > MAX_CHANNEL_NAME_LENGTH:
             raise ChannelNameTooLong(f"Channel name too long: {name}")
         if not name[0] in VALID_CHANNEL_PREFIXES:
@@ -107,6 +107,7 @@ class Channel:
 
     def removeUser(self, user: User) -> None:
         if user.username in self.users:
+            assert user.username is not None
             log.info(f"Removing user {user.nick} from channel {self.name}")
             del self.users[user.username]
         elif user.username in self.operators:
@@ -125,6 +126,7 @@ class Channel:
 
     def removeOperator(self, user: User) -> None:
         if user.username in self.operators:
+            assert user.username is not None
             log.info(f"Removing operator {user.nick} from channel {self.name}")
             del self.operators[user.username]
         else:
