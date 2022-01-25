@@ -9,7 +9,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -43,6 +42,11 @@ jobs:
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: poetry install --no-interaction
+  
+  lint:
+    runs-on: ubuntu-latest
+    needs: ['build']
+    steps:
     - name: Check formatting with black
       run: poetry run black . --check
     - name: Lint with flake8
@@ -53,8 +57,18 @@ jobs:
         poetry run flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Lint with mypy
       run: poetry run mypy
+  
+  test:
+    runs-on: ubuntu-latest
+    needs: ['build']
+    steps:
     - name: Test with pytest
       run: poetry run pytest
+  
+  scan:
+    runs-on: ubuntu-latest
+    needs: ['build']
+    steps:
     - name: Test with bandit
       run: poetry run bandit -ll -r src
     - name: Scan with Snyk
