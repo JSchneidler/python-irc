@@ -19,18 +19,14 @@ def welcome(nick: str, username: str, host: str) -> Reply:
 
 
 def yourHost(serverName: str, version: str) -> Reply:
-    return Reply(
-        "002", f":Your host is {serverName}, running version {version}"
-    )
+    return Reply("002", f":Your host is {serverName}, running version {version}")
 
 
 def created(date: str) -> Reply:
     return Reply("003", f":This server was created {date}")
 
 
-def myInfo(
-    serverName: str, version: str, userModes: str, channelModes: str
-) -> Reply:
+def myInfo(serverName: str, version: str, userModes: str, channelModes: str) -> Reply:
     return Reply("004", f":{serverName} {version} {userModes} {channelModes}")
 
 
@@ -95,9 +91,7 @@ def userModeIs(mode: str) -> Reply:
 
 
 def lUserClient(users: int, services: int) -> Reply:
-    return Reply(
-        "251", f":There are {users} users and {services} services on 1 server"
-    )
+    return Reply("251", f":There are {users} users and {services} services on 1 server")
 
 
 def lUserOp(ops: int) -> Reply:
@@ -147,9 +141,7 @@ def userHost(user: User, clientIdentifier: str) -> Reply:
 
 
 def channelList(channel: Channel) -> Reply:
-    return Reply(
-        "322", f"{channel.name} {len(channel.getAllUsers())} :{channel.topic}"
-    )
+    return Reply("322", f"{channel.name} {len(channel.getAllUsers())} :{channel.topic}")
 
 
 def channelListEnd() -> Reply:
@@ -164,9 +156,7 @@ def topic(channel: Channel) -> Reply:
 
 
 def names(channel: Channel) -> Reply:
-    operators = list(
-        map(lambda opName: f"@{opName}", channel.getOperators().keys())
-    )
+    operators = list(map(lambda opName: f"@{opName}", channel.getOperators().keys()))
     users = list(channel.getUsers().keys())
     return Reply("353", f"= {channel.name} :{' '.join(operators + users)}")
 
@@ -180,9 +170,7 @@ def time(server: str, time: str) -> Reply:
 
 
 def unknownMode(channel: Channel, mode: str) -> Reply:
-    return Reply(
-        "472", f"{mode} :is unknown mode char to me for {channel.name}"
-    )
+    return Reply("472", f"{mode} :is unknown mode char to me for {channel.name}")
 
 
 def noChannelModes(channelName: str) -> Reply:

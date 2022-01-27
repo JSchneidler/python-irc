@@ -40,9 +40,7 @@ def test_Server_join_channelKey(server: Server):
 
     client2.sendall(b"JOIN #chan pass\r\n")
     response = readLine(client2)
-    assert (
-        response == ":127.0.0.1 475 test2 #chan :Cannot join channel (+k)\r\n"
-    )
+    assert response == ":127.0.0.1 475 test2 #chan :Cannot join channel (+k)\r\n"
 
     client2.sendall(b"JOIN #chan password\r\n")
     responses = readJoin(client2)
