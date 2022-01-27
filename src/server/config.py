@@ -3,7 +3,7 @@ from typing import Optional
 from tap import Tap
 from pydantic import BaseSettings
 
-from lib.logger import LogLevel
+from lib.logger import LogLevel, logger
 
 from .ServerState import OperatorCredential, OperatorCredentials, MOTD
 
@@ -12,6 +12,8 @@ DEFAULT_HOST = "localhost"
 DEFAULT_PORT = 6667
 DEFAULT_LOG_LEVEL = LogLevel.INFO
 
+log = logger.getChild("server.Config")
+
 
 class CliConfig(Tap):
     """Run an IRC server."""
@@ -19,12 +21,14 @@ class CliConfig(Tap):
     host: Optional[str] = None  # Host to listen on
     port: Optional[int] = None  # Port to listen on
     log_level: Optional[LogLevel] = None  # Log level
+    log_path: Optional[str] = None  # Path to log file
 
 
 class FileConfig(BaseSettings):
     host: Optional[str] = None  # Host to listen on
     port: Optional[int] = None  # Port to listen on
     log_level: Optional[LogLevel] = None  # Log level
+    log_path: Optional[str] = None  # Path to log file
     operator_credentials_path: Optional[str] = None  # Path to operator credentials file
     motd_path: Optional[str] = None  # Path to MOTD file
 
@@ -46,6 +50,12 @@ class Config:
 
         self.loadOperatorCredentials()
         self.loadMOTD()
+
+        log.info(
+            f"Host: {self.getHost()}:{self.getPort()}"
+            f"Log Level: {self.getLogLevel()}"
+            f"Log Path: {self.getLogPath()}"
+        )
 
     def loadOperatorCredentials(self) -> None:
         if self.fileConfig.operator_credentials_path:
@@ -80,6 +90,9 @@ class Config:
         return (
             self.cliConfig.log_level or self.fileConfig.log_level or DEFAULT_LOG_LEVEL
         )
+
+    def getLogPath(self) -> Optional[str]:
+        return self.cliConfig.log_path or self.fileConfig.log_path
 
     def getOperatorCredentials(self) -> Optional[OperatorCredentials]:
         return self.operatorCredentials
