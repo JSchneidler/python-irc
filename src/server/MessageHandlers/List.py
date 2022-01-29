@@ -1,4 +1,5 @@
 from lib.Message import Message
+from lib.Channel import Channels
 
 from .Handler import Handler
 from .Reply import Reply, channelList, channelListEnd
