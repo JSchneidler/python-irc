@@ -27,7 +27,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.local
-        key: poetry-1.1.12
+        key: poetry-1.1.12-${{ secrets.CACHE_VERSION }}
     - name: Install Poetry
       uses: snok/install-poetry@v1
       if: steps.cached-poetry-install.outputs.cache-hit != 'true'
@@ -56,7 +56,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.local
-        key: poetry-1.1.12
+        key: poetry-1.1.12-${{ secrets.CACHE_VERSION }}
     - name: Load cached venv
       id: cached-poetry-dependencies
       uses: actions/cache@v2
@@ -85,7 +85,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.local
-        key: poetry-1.1.12
+        key: poetry-1.1.12-${{ secrets.CACHE_VERSION }}
     - name: Load cached venv
       id: cached-poetry-dependencies
       uses: actions/cache@v2
@@ -106,7 +106,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.local
-        key: poetry-1.1.12
+        key: poetry-1.1.12-${{ secrets.CACHE_VERSION }}
     - name: Load cached venv
       id: cached-poetry-dependencies
       uses: actions/cache@v2
