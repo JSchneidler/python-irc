@@ -32,6 +32,7 @@ jobs:
       uses: snok/install-poetry@v1
       if: steps.cached-poetry-install.outputs.cache-hit != 'true'
       with:
+        version: 1.1.12
         virtualenvs-in-project: true
     - name: Load cached venv
       id: cached-poetry-dependencies
@@ -42,7 +43,6 @@ jobs:
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: |
-        poetry config virtualenvs.in-project true
         poetry install --no-interaction
   
   lint:
